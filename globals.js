@@ -1463,3 +1463,300 @@ xhr.open("GET", "https://academy.europa.eu/pluginfile.php/1230879/mod_resource/c
 xhr.send();
 
 
+// FORGOT TO ADD THESE IMPORTANT FUNCTIONS TO GLOBALS //
+// LEVEL 1 //
+
+function updateScores() {
+    console.log("updateScores called - Verifying POST method");
+
+    const player = GetPlayer();
+    if (!player) {
+        console.error("GetPlayer returned null or undefined");
+        return;
+    }
+
+    var userName = player.GetVar("data_userName");
+    let yetiScoresLevel1 = player.GetVar("yetiScoresLevel1") || '';
+
+    console.log("MY SCORES: EXISTING LEVEL 1:", yetiScoresLevel1);
+
+    var newScore = player.GetVar("scoreLevel1");
+
+    // Convert newScore to a number explicitly
+    newScore = Number(newScore);
+
+    if (isNaN(newScore)) {
+        console.error("New score must be a number:", newScore);
+        return;
+    }
+
+    // Check if the new score is different from the last score in the array
+    const scoresArray = yetiScoresLevel1.split(',').map(Number);
+    const lastScore = scoresArray[scoresArray.length - 1];
+
+    if (newScore === lastScore) {
+        console.log("New score is the same as the last score. No update needed.");
+        return;
+    }
+
+    if (yetiScoresLevel1.length > 0) {
+        yetiScoresLevel1 += ',';
+    }
+    yetiScoresLevel1 += newScore;
+
+    console.log("MY SCORES: UPDATED LEVEL 1:", yetiScoresLevel1); // Log the updated yetiScores string
+
+    const url = `https://api.olscloudserver.site/yetiScoresLevel1`;
+
+    const data = {
+        userName: userName,
+        yetiScoresLevel1: yetiScoresLevel1.split(',').map(Number) // Convert string to array of numbers
+    };
+
+    console.log("Data to be sent:", data);
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        console.log("Fetch response received:", response);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(result => {
+        console.log("Result:", result);
+        // Handle the result accordingly
+        if (result.success) {
+            console.log("Scores updated successfully");
+            player.SetVar("scoreUpdateStatus", 'Success');
+        } else {
+            console.log("Score update failed");
+            player.SetVar("scoreUpdateStatus", 'Failed');
+        }
+    })
+    .catch(error => {
+        console.error('Error in fetch:', error);
+        player.SetVar("scoreUpdateStatus", 'Error');
+    });
+}
+
+updateScores();
+
+
+// LEVEL 2 //
+
+function updateScores() {
+
+
+    const player = GetPlayer();
+    if (!player) {
+        console.error("GetPlayer returned null or undefined");
+        return;
+    }
+
+    var userName = player.GetVar("data_userName");
+    let yetiScoresLevel2 = player.GetVar("yetiScoresLevel2") || '';
+
+    console.log("userName:", userName);
+    console.log("MY SCORES: EXISTING LEVEL2", yetiScoresLevel2);
+
+    var newScore = player.GetVar("scoreLevel2");
+
+    // Convert newScore to a number explicitly
+    newScore = Number(newScore);
+
+    if (isNaN(newScore)) {
+        console.error("New score must be a number:", newScore);
+        return;
+    }
+
+    // Check if the new score is different from the last score in the array
+    const scoresArray = yetiScoresLevel2.split(',').map(Number);
+    const lastScore = scoresArray[scoresArray.length - 1];
+
+    if (newScore === lastScore) {
+        console.log("New score is the same as the last score. No update needed.");
+        return;
+    }
+
+    if (yetiScoresLevel2.length > 0) {
+        yetiScoresLevel2 += ',';
+    }
+    yetiScoresLevel2 += newScore;
+
+    console.log("MY SCORES: UPDTAED LEVEL 2:", yetiScoresLevel2); // Log the updated yetiScores string
+
+    const url = `https://api.olscloudserver.site/yetiScoresLevel2`;
+
+    const data = {
+        userName: userName,
+        yetiScoresLevel2: yetiScoresLevel2.split(',').map(Number) // Convert string to array of numbers
+    };
+
+    console.log("Data to be sent:", data);
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        console.log("Fetch response received:", response);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(result => {
+        console.log("Result:", result);
+        // Handle the result accordingly
+        if (result.success) {
+
+            player.SetVar("scoreUpdateStatus", 'Success');
+        } else {
+
+            player.SetVar("scoreUpdateStatus", 'Failed');
+        }
+    })
+    .catch(error => {
+        console.error('Error in fetch:', error);
+        player.SetVar("scoreUpdateStatus", 'Error');
+    });
+}
+
+updateScores();
+
+
+function updateWords() {
+    console.log("updateWords called - Verifying POST method");
+
+    const player = GetPlayer();
+    if (!player) {
+        console.error("GetPlayer returned null or undefined");
+        return;
+    }
+
+    var userName = player.GetVar("data_userName");
+
+    console.log("userName:", userName);
+
+    const wordsToUpdate = {};
+
+    for (let i = 1; i <= 50; i++) {
+        const tfWord = player.GetVar(`TF_Word_${i}`);
+        wordsToUpdate[`Word_${i}`] = tfWord;
+        console.log(`TF_Word_${i} to be updated to:`, tfWord);
+    }
+
+    const url = `https://api.olscloudserver.site/updateWords`;
+
+    const data = {
+        userName: userName,
+        wordsToUpdate: wordsToUpdate
+    };
+
+    console.log("Data to be sent:", data);
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        console.log("Fetch response received:", response);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(result => {
+        console.log("Result:", result);
+        if (result.success) {
+            console.log("Words updated successfully");
+            player.SetVar("wordUpdateStatus", 'Success');
+        } else {
+            console.log("Word update failed");
+            player.SetVar("wordUpdateStatus", 'Failed');
+        }
+    })
+    .catch(error => {
+        console.error('Error in fetch:', error);
+        player.SetVar("wordUpdateStatus", 'Error');
+    });
+}
+
+// Call updateWords function when needed
+updateWords();
+
+function updatePhrases() {
+    console.log("updatePhrases called - Verifying POST method");
+
+    const player = GetPlayer();
+    if (!player) {
+        console.error("GetPlayer returned null or undefined");
+        return;
+    }
+
+    var userName = player.GetVar("data_userName");
+
+    console.log("userName:", userName);
+
+    const phrasesToUpdate = {};
+
+    for (let i = 1; i <= 50; i++) {
+        const tfPhrase = player.GetVar(`TF_Phrase_${i}`);
+        phrasesToUpdate[`TF_Phrase_${i}`] = tfPhrase;
+        console.log(`TF_Phrase_${i} to be updated to:`, tfPhrase);
+    }
+
+    const url = `https://api.olscloudserver.site/updatePhrases`;
+
+    const data = {
+        userName: userName,
+        phrasesToUpdate: phrasesToUpdate
+    };
+
+    console.log("Data to be sent:", data);
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        console.log("Fetch response received:", response);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(result => {
+        console.log("Result:", result);
+        if (result.success) {
+            console.log("Phrases updated successfully");
+            player.SetVar("phraseUpdateStatus", 'Success');
+        } else {
+            console.log("Phrase update failed");
+            player.SetVar("phraseUpdateStatus", 'Failed');
+        }
+    })
+    .catch(error => {
+        console.error('Error in fetch:', error);
+        player.SetVar("phraseUpdateStatus", 'Error');
+    });
+}
+
+// Call updatePhrases function when needed
+updatePhrases();
