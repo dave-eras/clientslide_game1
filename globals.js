@@ -1,506 +1,705 @@
-//SIGN IN PAGE - on submit username BTN//
-function checkUserName() {
-    console.log("checkUserName called - Verifying GET method");
 
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
-    }
+const API_BASEURL = "https://api.olscloudserver.site"
 
-    var userName = player.GetVar("data_userName");
+player = new Player(global)
 
-    console.log("userName:", userName);
+player.targetLanguageUrl = "https://academy.europa.eu/pluginfile.php/1230926/mod_resource/content/1/game_1.xml"
+player.helpLanguageUrl = "https://academy.europa.eu/pluginfile.php/1230879/mod_resource/content/1/game_1_help_language.xml"
 
-    // Check the length of userName
-    var error_5 = checkUserNameLength(userName);
+function Player(player) {
+    this.player = player.GetPlayer()
+    this.username = ""
+    this.password = ""
+    this.avatar = ""
+    this.targetLanguage = ""
+    this.helpLanguage = ""
 
-    if (error_5) {
-        console.log("Error_5 is true. userName length is not within the allowed range. Aborting checkUserName process.");
-        player.SetVar("error_5", 'True');
-        return;
-    } else {
-        player.SetVar("error_5", 'False');
-    }
+    this.targetLanguageUrl = ""
+    this.helpLanguageUrl = ""
 
-    const url = `https://api.olscloudserver.Site/checkUserName?userName=${encodeURIComponent(userName)}`;
+    this.levelsOpen = 0
 
-    console.log("Data to be sent:", url);
+    this.yetiScoresLevel1 = []
+    this.yetiScoresLevel2 = []
 
-    fetch(url, {
-        method: 'GET'
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+    this.words = []
+    this.phrases = []
+
+    this.ReadDataSignUp = function(){
+        if (!this.player) {
+            console.error("GetPlayer returned null or undefined");
+            return
         }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        // Add logging to see the exact value of error_3 in the result
-        console.log("error_3 from server:", result.error_3);
 
-        // Update Storyline variable based on the response
-        if (result.error_3 === false) { // If there is no user, error_3 should be false
-            console.log("User does not exist, setting error_3 to 'False'");
-            player.SetVar("error_3", 'False');
+        this.username = this.player.GetVar("data_userName");
+        this.password = this.player.GetVar("data_userPassword");
+        this.avatar = this.player.GetVar("data_userAvatar");
+        this.targetLanguage = this.player.GetVar("targetLanguage");
+        this.helpLanguage = this.player.GetVar("helpLanguage");
+        this.levelsOpen = this.player.GetVar("levelsOpen");
+
+        for (let i = 1; i <= 50; i++) {
+            this.words["Word_" + i] = '';
+        }
+
+        for (let i = 1; i <= 50; i++) {
+            this.phrases["TF_Phrase_" + i] = false;
+        }
+    }
+    this.ReadDataSignIn = function(){
+        if (!this.player) {
+            console.error("GetPlayer returned null or undefined");
+            return
+        }
+
+        this.username = this.player.GetVar("data_userName");
+        this.password = this.player.GetVar("data_userPassword");
+        this.targetLanguage = this.player.GetVar("targetLanguage");
+    }
+    this.ReadDataUsername = function(){
+        this.username = this.player.GetVar("data_userName");
+    }
+
+    this.ValidUsername = function(){
+        this.ReadDataSignUp()
+
+        if (this.username.length < 4 || this.username.length > 12) {
+            this.player.SetVar("error_5", 'True');
+            return
         } else {
-            console.log("User exists, setting error_3 to 'True'");
-            player.SetVar("error_3", 'True');
+            this.player.SetVar("error_5", 'False');
         }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-    });
-}
 
-// Function to check the length of userName
-function checkUserNameLength(userName) {
-    const length = userName.length;
-    console.log("userName length:", length);
-    if (length < 4 || length > 8) {
-        return true; // Error: length is not within 4 to 8 characters
-    }
-    return false; // No error: length is within 4 to 8 characters
-}
+        let req = new Request(API_BASEURL + "/checkUserName?userName=" + encodeURIComponent(this.username), "GET", {}, {})
+        let resp = req.Send()
 
-checkUserName();
-
-
-//SIGN IN PAGE - on create account BTN//
-
-function createUser() {
-    console.log("createUser called - Verifying POST method");
-
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
+        resp.then((result) => {
+            if (result.status === 200) {
+                result.json().then((response) => {
+                    if (response.error_3 === false) {
+                        this.player.SetVar("error_3", 'False');
+                    } else {
+                        this.player.SetVar("error_3", 'True');
+                    }
+                })
+            } else {
+                console.log("request failed, http code: " + resp.status)
+            }
+        })
     }
 
-    var userName = player.GetVar("data_userName");
-    var userPassword = player.GetVar("data_userPassword");
-    var userAvatar = player.GetVar("data_userAvatar");
-    var targetLanguage = player.GetVar("targetLanguage");
-    var helpLanguage = player.GetVar("helpLanguage");
-    var levelsOpen = player.GetVar("levelsOpen");
+    this.SignUp = function(){
+        this.ReadDataSignUp()
 
-    console.log("userName:", userName);
-    console.log("userPassword:", userPassword);
-    console.log("userAvatar:", userAvatar);
-    console.log("targetLanguage:", targetLanguage);
-    console.log("helpLanguage:", helpLanguage);
-    console.log("levelsOpen:", levelsOpen);
-
-    // Initialize words and phrases fields without values
-    const words = {};
-    for (let i = 1; i <= 50; i++) {
-        words[`Word_${i}`] = '';
-    }
-
-    const phrases = {};
-    for (let i = 1; i <= 50; i++) {
-        phrases[`TF_Phrase_${i}`] = false; // Initialize phrases fields with false
-    }
-
-    const url = `https://api.olscloudserver.site/createUser`;
-
-    const data = {
-        userName: userName,
-        userPassword: userPassword,
-        userAvatar: userAvatar,
-        targetLanguage: targetLanguage,
-        helpLanguage: helpLanguage,
-        levelsOpen: levelsOpen,
-        yetiScoresLevel1: [0],
-        yetiScoresLevel2: [0],
-        ...words,
-        ...phrases
-    };
-
-    console.log("Data to be sent:", data);
-
-    fetch(url, {
-        method: 'POST',
-        headers: {
+        let headers = {
             'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        // Handle the result accordingly
-        if (result.success) {
-            console.log("User created successfully");
-            player.SetVar("userCreationStatus", 'Success');
-        } else {
-            console.log("User creation failed");
-            player.SetVar("userCreationStatus", 'Failed');
-        }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-        player.SetVar("userCreationStatus", 'Error');
-    });
-}
-
-// Call createUser function when needed
-createUser();
-
-//LOGIN PAGE on Let's Play BTN//
-
-function sendDataToServer() {
-    console.log("sendDataToServer called - Verifying GET method");
-
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
-    }
-
-    var userName = player.GetVar("data_userName");
-    var userPassword = player.GetVar("data_userPassword");
-    var targetLanguage = player.GetVar("targetLanguage");
-
-    console.log("userName:", userName);
-    console.log("userPassword:", userPassword);
-    console.log("targetLanguage:", targetLanguage);
-
-    const url = `https://api.olscloudserver.site/checkUser?userName=${encodeURIComponent(userName)}&userPassword=${encodeURIComponent(userPassword)}&targetLanguage=${encodeURIComponent(targetLanguage)}`;
-
-    console.log("Data to be sent:", url);
-
-    fetch(url, {
-        method: 'GET'
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        // Update Storyline variables based on the response
-        if (result.error_1) {
-            player.SetVar("error_1", 'True');
-        } else {
-            player.SetVar("error_1", 'False');
         }
 
-        if (result.error_2) {
-            player.SetVar("error_2", 'True');
-        } else {
-            player.SetVar("error_2", 'False');
+        let data = {
+            userName: this.username,
+            userPassword: this.password,
+            userAvatar: this.avatar,
+            targetLanguage: this.targetLanguage,
+            helpLanguage: this.helpLanguage,
+            levelsOpen: this.levelsOpen,
+            yetiScoresLevel1: [0],
+            yetiScoresLevel2: [0],
+            ...this.words,
+            ...this.phrases
         }
 
-        if (result.error_4) {
-            player.SetVar("error_4", 'True');
-        } else {
-            player.SetVar("error_4", 'False');
-        }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-    });
-}
+        let req = new Request(API_BASEURL + "/createUser", "POST", headers, data)
+        let resp = req.Send()
 
-sendDataToServer();
-
-// HOMEPAGE - on load//
-// for LEVEL 1 //
-
-function onSlideLoad() {
-    console.log("Slide loaded - retrieving user data");
-
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
-    }
-
-    var userName = player.GetVar("data_userName");
-
-    if (!userName) {
-        console.error("userName is not set");
-        return;
-    }
-
-    console.log("userName:", userName);
-
-    const url = `https://api.olscloudserver.site/getUserData?userName=${encodeURIComponent(userName)}`;
-
-    console.log("Data to be sent:", url);
-
-    fetch(url, {
-        method: 'GET'
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        if (result.success) {
-            // Update userAvatar
-            player.SetVar("data_userAvatar", result.userAvatar);
-            console.log("HOME PAGE SET AVATAR:", result.userAvatar);
-
-            // Process yetiScoresLevel1
-            const fetchedYetiScoresLevel1 = result.yetiScoresLevel1 || [];
-            const yetiScoresLevel1String = fetchedYetiScoresLevel1.join(',');
-            player.SetVar("yetiScoresLevel1", yetiScoresLevel1String); // Convert array to comma-separated string
-            console.log("HOME PAGE RETRIEVE LEVEL 1 SCORES:", yetiScoresLevel1String);
-
-            // Update the scoreLevel1 variable with the last score in the array
-            if (fetchedYetiScoresLevel1.length > 0) {
-                const lastScoreLevel1 = fetchedYetiScoresLevel1[fetchedYetiScoresLevel1.length - 1];
-                player.SetVar("scoreLevel1", lastScoreLevel1);
-                console.log("HOME PAGE RETRIEVE LATEST LEVEL 1 SCORE:", lastScoreLevel1);
+        resp.then((result) => {
+            if (result.status === 200) {
+                result.json().then((response) => {
+                    if (response.success) {
+                        this.player.SetVar("userCreationStatus", 'Success');
+                    } else {
+                        this.player.SetVar("userCreationStatus", 'Failed');
+                    }
+                })
             } else {
-                console.warn("No scores found in yetiScoresLevel1");
+                this.player.SetVar("userCreationStatus", 'Error');
             }
-
-            // Update other Storyline variables
-            player.SetVar("targetLanguage", result.targetLanguage);
-            player.SetVar("helpLanguage", result.helpLanguage);
-            player.SetVar("levelsOpen", result.levelsOpen);
-            console.log("HOME PAGE RETRIEVE LANGUAGES AND LEVELS OPEN:", result.targetLanguage, result.helpLanguage, result.levelsOpen);
-
-        } else {
-            console.error("Failed to retrieve user data:", result.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-    });
-}
-
-// Call onSlideLoad when the slide loads
-onSlideLoad();
-
-// HOMEPAGE - on load //
-// for LEVEL 2 //
-
-function onSlideLoad() {
-
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
+        })
     }
+    this.SignIn = function(){
+        this.ReadDataSignIn()
 
-    var userName = player.GetVar("data_userName");
+        let req = new Request(API_BASEURL + "/checkUser?userName=" + encodeURIComponent(this.username) + "&userPassword=" + encodeURIComponent(this.password) + "&targetLanguage=" + encodeURIComponent(this.targetLanguage), "GET", {}, {})
+        let resp = req.Send()
 
-    if (!userName) {
-        console.error("userName is not set");
-        return;
-    }
+        resp.then((result) => {
+            if (result.status === 200) {
+                result.json().then((response) => {
+                    console.log(response)
 
-    console.log("userName:", userName);
-
-    const url = `https://api.olscloudserver.site/getUserData?userName=${encodeURIComponent(userName)}`;
-
-    console.log("Data to be sent:", url);
-
-    fetch(url, {
-        method: 'GET'
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        if (result.success) {
-
-            // Process yetiScoresLevel2
-            const fetchedYetiScoresLevel2 = result.yetiScoresLevel2 || [];
-            const yetiScoresLevel2String = fetchedYetiScoresLevel2.join(',');
-            player.SetVar("yetiScoresLevel2", yetiScoresLevel2String); // Convert array to comma-separated string
-            console.log("HOMEPAGE RETRIEVE LEVEL2 SCORES:", yetiScoresLevel2String);
-
-            // Update the scoreLevel2 variable with the last score in the array
-            if (fetchedYetiScoresLevel2.length > 0) {
-                const lastScoreLevel2 = fetchedYetiScoresLevel2[fetchedYetiScoresLevel2.length - 1];
-                player.SetVar("scoreLevel2", lastScoreLevel2);
-                console.log("HOMEPAGE RETRIEVE LATEST LEVEL2 SCORE:", lastScoreLevel2);
+                    this.player.SetVar("error_1", response.error_1 ? 'True' : 'False');
+                    this.player.SetVar("error_2", response.error_2 ? 'True' : 'False');
+                    this.player.SetVar("error_4", response.error_4 ? 'True' : 'False');
+                })
             } else {
-                console.warn("No scores found in yetiScoresLevel2");
+                console.log("request failed, http code: " + result.status)
             }
-        } else {
-            console.error("Failed to retrieve user data:", result.message);
+        })
+    }
+    this.Load = function(){
+        this.ReadDataUsername()
+
+        if (!this.player) {
+            return
         }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-    });
+
+        let req = new Request(API_BASEURL + "/getUserData?userName=" + encodeURIComponent(this.username), "GET", {}, {})
+        let resp = req.Send()
+
+        resp.then((result) => {
+            if (result.status === 200) {
+                result.json().then((response) => {
+                    if (response.success) {
+                        this.player.SetVar("data_userAvatar", response.userAvatar);
+
+                        const fetchedYetiScoresLevel1 = response.yetiScoresLevel1 || [];
+                        const yetiScoresLevel1String = fetchedYetiScoresLevel1.join(',');
+                        this.player.SetVar("yetiScoresLevel1", yetiScoresLevel1String); // Convert array to comma-separated string
+
+                        // Update the scoreLevel1 variable with the last score in the array
+                        if (fetchedYetiScoresLevel1.length > 0) {
+                            const lastScoreLevel1 = fetchedYetiScoresLevel1[fetchedYetiScoresLevel1.length - 1];
+                            this.player.SetVar("scoreLevel1", lastScoreLevel1);
+
+                            const currentScore = fetchedYetiScoresLevel1[fetchedYetiScoresLevel1.length - 1];
+                            const highScore = Math.max(...fetchedYetiScoresLevel1);
+
+                            // Exclude the latest score and the high score from the array
+                            const scoresExcludingLastAndHigh = fetchedYetiScoresLevel1.slice(0, -1).filter(score => score !== highScore);
+
+                            // Sort the remaining scores in descending order
+                            const sortedScores = scoresExcludingLastAndHigh.sort((a, b) => b - a);
+                            const topScores = sortedScores.slice(0, 4);
+
+                            this.player.SetVar("data_currentScoreLevel1", currentScore);
+                            this.player.SetVar("data_highScoreLevel1", highScore);
+                            this.player.SetVar("data_scoreLevel1_1", topScores[0] || '');
+                            this.player.SetVar("data_scoreLevel1_2", topScores[1] || '');
+                            this.player.SetVar("data_scoreLevel1_3", topScores[2] || '');
+                            this.player.SetVar("data_scoreLevel1_4", topScores[3] || '');
+                        } else {
+                            console.warn("No scores found in yetiScoresLevel1");
+                        }
+
+                        // Process yetiScoresLevel2
+                        const fetchedYetiScoresLevel2 = response.yetiScoresLevel2 || [];
+                        const yetiScoresLevel2String = fetchedYetiScoresLevel2.join(',');
+                        this.player.SetVar("yetiScoresLevel2", yetiScoresLevel2String); // Convert array to comma-separated string
+
+                        // Update the scoreLevel2 variable with the last score in the array
+                        if (fetchedYetiScoresLevel2.length > 0) {
+                            const lastScoreLevel2 = fetchedYetiScoresLevel2[fetchedYetiScoresLevel2.length - 1];
+                            this.player.SetVar("scoreLevel2", lastScoreLevel2);
+
+                            const currentScore = fetchedYetiScoresLevel2[fetchedYetiScoresLevel2.length - 1];
+                            const highScore = Math.max(...fetchedYetiScoresLevel2);
+
+                            // Exclude the latest score and the high score from the array
+                            const scoresExcludingLastAndHigh = fetchedYetiScoresLevel2.slice(0, -1).filter(score => score !== highScore);
+
+                            // Sort the remaining scores in descending order
+                            const sortedScores = scoresExcludingLastAndHigh.sort((a, b) => b - a);
+                            const topScores = sortedScores.slice(0, 4);
+
+                            this.player.SetVar("data_currentScoreLevel2", currentScore);
+                            this.player.SetVar("data_highScoreLevel2", highScore);
+                            this.player.SetVar("data_scoreLevel2_1", topScores[0] || '');
+                            this.player.SetVar("data_scoreLevel2_2", topScores[1] || '');
+                            this.player.SetVar("data_scoreLevel2_3", topScores[2] || '');
+                            this.player.SetVar("data_scoreLevel2_4", topScores[3] || '');
+
+                        } else {
+                            console.warn("No scores found in yetiScoresLevel2");
+                        }
+
+                        this.player.SetVar("targetLanguage", response.targetLanguage);
+                        this.player.SetVar("helpLanguage", response.helpLanguage);
+                        this.player.SetVar("levelsOpen", response.levelsOpen);
+                    } else {
+                        console.error("Failed to retrieve user data:", response.message);
+                    }
+                })
+            }
+        })
+    }
+    this.Words = function(){
+        let req = new Request(API_BASEURL + "/getWords?userName=" + encodeURIComponent(this.username), "GET", {}, {})
+        let resp = req.Send()
+
+        resp.then((result) => {
+            if (result.status === 200) {
+                result.json().then((response) => {
+                    if (response.success) {
+                        const words = response.words;
+                        for (let i = 1; i <= 50; i++) {
+                            const tfWord = words[`Word_${i}`] || false;
+                            this.player.SetVar(`TF_Word_${i}`, tfWord);
+                        }
+                    } else {
+                        console.error("failed to retrieve words:", response.message);
+                    }
+                })
+            }
+        })
+    }
+    this.Phrases = function(){
+        let req = new Request(API_BASEURL + "/getPhrases?userName=" + encodeURIComponent(this.username), "GET", {}, {})
+        let resp = req.Send()
+
+        resp.then((result) => {
+            if (result.status === 200) {
+                result.json().then((response) => {
+                    if (response.success) {
+                        const phrases = response.phrases;
+                        for (let i = 1; i <= 50; i++) {
+                            const tfPhrase = phrases[`TF_Phrase_${i}`] || false;
+                            this.player.SetVar(`TF_Phrase_${i}`, tfPhrase);
+                        }
+                    } else {
+                        console.error("Failed to retrieve phrases:", response.message);
+                    }
+                })
+            }
+        })
+    }
+
+    this.UpdatePhrases = function(){
+        this.ReadDataUsername()
+
+        if (!this.player) {
+            return
+        }
+
+
+        let phrasesToUpdate = {}
+
+        for (let i = 1; i <= 50; i++) {
+            const tfPhrase = this.player.GetVar(`TF_Phrase_${i}`);
+            phrasesToUpdate[`TF_Phrase_${i}`] = tfPhrase;
+        }
+
+        let headers = {
+            'Content-Type': 'application/json'
+        }
+
+        let data = {
+            userName: this.username,
+            phrasesToUpdate: phrasesToUpdate,
+        }
+
+        let req = new Request(API_BASEURL + "/updatePhrases", "POST", headers, data)
+        let resp = req.Send()
+
+        resp.then((result) => {
+            if (result.status === 200) {
+                result.json().then((response) => {
+                    if (response.success) {
+                        this.player.SetVar("phraseUpdateStatus", 'Success');
+                    } else {
+                        this.player.SetVar("phraseUpdateStatus", 'Failed');
+                    }
+                })
+            } else {
+                this.player.SetVar("phraseUpdateStatus", 'Error');
+            }
+        })
+    }
+    this.UpdateWords = function(){
+        this.ReadDataUsername()
+
+        if (!this.player) {
+            return
+        }
+
+        let wordsToUpdate = {};
+
+        for (let i = 1; i <= 50; i++) {
+            const tfWord = this.player.GetVar(`TF_Word_${i}`);
+            wordsToUpdate[`Word_${i}`] = tfWord;
+        }
+
+        let headers = {
+            'Content-Type': 'application/json'
+        }
+
+        let data = {
+            userName: this.username,
+            wordsToUpdate: wordsToUpdate
+        };
+
+        let req = new Request(API_BASEURL + "/updateWords", "POST", headers, data)
+        let resp = req.Send()
+
+        resp.then((result) => {
+            if (result.status === 200) {
+                result.json().then((response) => {
+                    if (response.success) {
+                        this.player.SetVar("wordUpdateStatus", 'Success');
+                    } else {
+                        this.player.SetVar("wordUpdateStatus", 'Failed');
+                    }
+                })
+            } else {
+                this.player.SetVar("wordUpdateStatus", 'Error');
+            }
+        })
+    }
+    this.UpdateScoresLevel1 = function(){
+        this.ReadDataUsername()
+
+        if (!this.player) {
+            return
+        }
+
+        let yetiScoresLevel1 = this.player.GetVar("yetiScoresLevel1") || '';
+
+        var newScore = this.player.GetVar("scoreLevel1");
+
+        newScore = Number(newScore);
+
+        if (isNaN(newScore)) {
+            return;
+        }
+
+        const scoresArray = yetiScoresLevel1.split(',').map(Number);
+        const lastScore = scoresArray[scoresArray.length - 1];
+
+        if (newScore === lastScore) {
+            console.log("New score is the same as the last score. No update needed.");
+            return;
+        }
+
+        if (yetiScoresLevel1.length > 0) {
+            yetiScoresLevel1 += ',';
+        }
+
+        yetiScoresLevel1 += newScore;
+
+        let headers = {
+            'Content-Type': 'application/json'
+        }
+
+        let data = {
+            userName: this.username,
+            yetiScoresLevel1: yetiScoresLevel1.split(',').map(Number)
+        };
+
+        let req = new Request(API_BASEURL + "/yetiScoresLevel1", "POST", headers, data)
+        let resp = req.Send()
+
+        resp.then((result) => {
+            if (result.status === 200) {
+                result.json().then((response) => {
+                    if (response.success) {
+                        this.player.SetVar("scoreUpdateStatus", 'Success');
+                    } else {
+                        this.player.SetVar("scoreUpdateStatus", 'Failed');
+                    }
+                })
+            } else {
+                this.player.SetVar("scoreUpdateStatus", 'Error');
+            }
+        })
+    }
+    this.UpdateScoresLevel2 = function(){
+        this.ReadDataUsername()
+
+        if (!this.player) {
+            return
+        }
+
+        let yetiScoresLevel2 = this.player.GetVar("yetiScoresLevel2") || '';
+
+        var newScore = this.player.GetVar("scoreLevel2");
+
+        newScore = Number(newScore);
+
+        if (isNaN(newScore)) {
+            return;
+        }
+
+        const scoresArray = yetiScoresLevel2.split(',').map(Number);
+        const lastScore = scoresArray[scoresArray.length - 1];
+
+        if (newScore === lastScore) {
+            console.log("New score is the same as the last score. No update needed.");
+            return;
+        }
+
+        if (yetiScoresLevel2.length > 0) {
+            yetiScoresLevel2 += ',';
+        }
+
+        yetiScoresLevel2 += newScore;
+
+        let headers = {
+            'Content-Type': 'application/json'
+        }
+
+        let data = {
+            userName: this.username,
+            yetiScoresLevel2: yetiScoresLevel2.split(',').map(Number)
+        };
+
+        let req = new Request(API_BASEURL + "/yetiScoresLevel2", "POST", headers, data)
+        let resp = req.Send()
+
+        resp.then((result) => {
+            if (result.status === 200) {
+                result.json().then((response) => {
+                    if (response.success) {
+                        this.player.SetVar("scoreUpdateStatus", 'Success');
+                    } else {
+                        this.player.SetVar("scoreUpdateStatus", 'Failed');
+                    }
+                })
+            } else {
+                this.player.SetVar("scoreUpdateStatus", 'Error');
+            }
+        })
+    }
+
+    this.UpdateLanguageVariables = function(){
+        if (!this.player) {
+            return
+        }
+        this.targetLanguage = this.player.GetVar("targetLanguage");
+        this.helpLanguage = this.player.GetVar("helpLanguage");
+        const languages = new Map();
+
+        languages.set(this.targetLanguage, this.targetLanguageUrl);
+        languages.set(this.helpLanguage, this.helpLanguageUrl);
+
+        for (const [language, url] of languages) {
+            let selectedLanguage = language
+
+            let req = new Request(url, "GET", {}, {})
+            let resp = req.Send()
+
+            resp.then((result) => {
+                if (result.status === 200) {
+                    result.text().then((response) => {
+                        var parser = new DOMParser();
+                        var xmlDoc = parser.parseFromString(response, "application/xml");
+
+                        var keyElements = xmlDoc.getElementsByTagName("Key");
+                        for (var i = 0; i < keyElements.length; i++) {
+                            var keyElement = keyElements[i];
+                            var variableName = keyElement.textContent.trim(); // Get the variable name from the <Key> element
+
+                            // Find the corresponding language data for the selected language
+                            var languageData = keyElement.parentElement.querySelector(selectedLanguage);
+
+                            // Check if language data exists
+                            if (languageData) {
+                                var variableValue = languageData.textContent.trim(); // Get the variable value from the language data
+
+                                // Update the Storyline variable with the retrieved text data
+                                this.player.SetVar(variableName, variableValue);
+                            } else {
+                                console.error("Language data not found for language: " + selectedLanguage);
+                            }
+                        }
+                    })
+                }
+            })
+        }
+    }
+
+    this.GenerateShuffledNumbers = function(len){
+        let numbers = GenerateArray(len);
+        let shuffled = ShuffleArray(numbers)
+
+        switch(len) {
+            case 10:
+                this.player.SetVar("ShuffledNumbers10", shuffled);
+                break
+            case 5:
+                this.player.SetVar("ShuffledNumbers5", shuffled);
+                break
+        }
+    }
+    this.GetNextRandomNumber = function(len){
+        let nextNumber = 0
+
+        switch(len) {
+            case 10:
+                let shuffledNumbers10 = this.player.GetVar("ShuffledNumbers10");
+
+                if (shuffledNumbers10 && shuffledNumbers10.length > 0) {
+                    nextNumber = shuffledNumbers10.shift();
+
+                    this.player.SetVar("ImageState", nextNumber);
+                    this.player.SetVar("ShuffledNumbers10", shuffledNumbers10);
+                }
+                break
+            case 5:
+                let shuffledNumbers5 = this.player.GetVar("ShuffledNumbers5");
+
+                if (shuffledNumbers5 && shuffledNumbers5.length > 0) {
+                    nextNumber = shuffledNumbers5.shift();
+
+                    this.player.SetVar("GoToSlide", nextNumber);
+                    this.player.SetVar("ShuffledNumbers5", shuffledNumbers5);
+                }
+                break
+        }
+    }
 }
 
-// Call onSlideLoad when the slide loads
-onSlideLoad();
+/*
+    Handle onSlideLoad events for specific slides
+    Description:
+        On each slide load fetch user data from the mongodb
+        and update storyline variables with fetched data
+ */
 
+function OnSlideLoadHomepage(){
+    player.Load()
+}
+function OnSlideLoadHomepageGoButton(){
+    player.Load()
+}
+function OnSlideLoadLeaderBoardLevel1(){
+    player.Load()
+}
+function OnSlideLoadLeaderBoardLevel2(){
+    player.Load()
+}
 
-//HOME PAGE - GO BUTTON//
+/*
+    Leaderboard tables
+ */
 
-// Function to shuffle an array
-function shuffleArray(array) {
+    function loadLeaderboardLevel1(player) {
+        let req = new Request(API_BASEURL + "/leaderboardLevel1", "GET", {}, {})
+        let resp = req.Send()
+     
+        resp.then((result) => {
+            if (result.status === 200) {
+                result.json().then((response) => {
+                    displayLeaderboardLevel1(player, response.leaderboardLevel1);
+                })
+            } else {
+                console.error("Failed to retrieve leaderboard data:", result.message);
+            }
+        })
+    }
+     
+    function displayLeaderboardLevel1(player, leaderboardLevel1) {
+        leaderboardLevel1.slice(0, 10).forEach((entry, index) => {
+            player.player.SetVar(`leaderboardLevel1_userName_${index + 1}`, entry.userName);
+            player.player.SetVar(`leaderboard_highestScoreLevel1_${index + 1}`, entry.score);
+            player.player.SetVar(`leaderboardLevel1_userAvatar_${index + 1}`, entry.userAvatar);
+        });
+    }
+     
+    function loadLeaderboardLevel2(player) {
+        let req = new Request(API_BASEURL + "/leaderboardLevel2", "GET", {}, {})
+        let resp = req.Send()
+     
+        resp.then((result) => {
+            if (result.status === 200) {
+                result.json().then((response) => {
+                    displayLeaderboardLevel2(player, response.leaderboardLevel2);
+                })
+            } else {
+                console.error("Failed to retrieve leaderboard data:", result.message);
+            }
+        })
+    }
+     
+    function displayLeaderboardLevel2(player, leaderboardLevel2) {
+        leaderboardLevel2.slice(0, 10).forEach((entry, index) => {
+            player.player.SetVar(`leaderboardLevel2_userName_${index + 1}`, entry.userName);
+            player.player.SetVar(`leaderboard_highestScoreLevel2_${index + 1}`, entry.score);
+            player.player.SetVar(`leaderboardLevel2_userAvatar_${index + 1}`, entry.userAvatar);
+        });
+    }
+
+/*
+    Helper functions
+ */
+
+function ShuffleArray(array) {
     for (var i = array.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
         var temp = array[i];
+
         array[i] = array[j];
         array[j] = temp;
     }
+
+    return array
 }
 
-// Function to create an array of numbers from 1 to 10 and shuffle it
-function createShuffledArray10() {
-    var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    shuffleArray(numbers);
-    return numbers;
+function GenerateArray(len) {
+    let newArr = [];
+    for (let i = 1; i <= len; i++) {
+        newArr.push(i);
+    }
+
+    let clone = []
+
+    if (len == 5) {
+        clone = newArr
+    }
+
+    return newArr.concat(clone);
 }
 
-
-// Store the shuffled array of 1 to 10 numbers in a Storyline variable
-function initializeShuffledNumbers10() {
-    var player = GetPlayer();
-    var shuffledNumbers10 = createShuffledArray10();
-    console.log("Initialized shuffled numbers 10:", shuffledNumbers10); // Debugging log
-    player.SetVar("ShuffledNumbers10", shuffledNumbers10);
+function normalizeString(str) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
 
+function filterWords(input, wordsArray) {
+    var normalizedInput = normalizeString(input).toLowerCase();
 
-// Function to get the next unique random number from 1 to 10 array
-function getNextUniqueRandomNumber10() {
-    var player = GetPlayer();
-    var shuffledNumbers10 = player.GetVar("ShuffledNumbers10");
+    return wordsArray.filter(function(word) {
+        return normalizeString(word).toLowerCase().includes(normalizedInput);
+    });
+}
 
-    console.log("Current shuffled numbers 10:", shuffledNumbers10); // Debugging log
+/*
+ Request function
+ */
 
-    if (shuffledNumbers10 && shuffledNumbers10.length > 0) {
-        var nextNumber = shuffledNumbers10.shift(); // Remove the first element
-        console.log("Next number:", nextNumber); // Debugging log
-        player.SetVar("ImageState", nextNumber);
-        player.SetVar("ShuffledNumbers10", shuffledNumbers10); // Update the array in Storyline
-        console.log("Updated shuffled numbers 10:", shuffledNumbers10); // Debugging log
+function Request(URL, method, headers, data){
+    this.URL = URL
+    this.method = method
+    this.headers = headers
+    this.data = data
+
+    if (this.method == "POST") {
+        this.Send = async function()   {
+            return await fetch(this.URL, {
+                method: this.method,
+                headers: this.headers,
+                body: JSON.stringify(this.data)
+            })
+        }
     } else {
-        console.log("All numbers have been used.");
+        this.Send = async function()   {
+            return await fetch(this.URL, {
+                method: this.method,
+                headers: this.headers
+            })
+        }
     }
 }
 
-
-// Initialize the shuffled arrays when the timeline starts
-initializeShuffledNumbers10();
-
-
-// Simulate the function call to get the next unique random number from both lists
-// These should be called based on your specific use case in Storyline
-getNextUniqueRandomNumber10();
-
-
-//HOME PAGE - GO BUTTON, RANDOM TOPIC SELECTION//
-
-// Function to shuffle an array
-function shuffleArray(array) {
-    for (var i = array.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var temp = array[i];
-        array[i] = array[j];
-        array[j] = temp;
-    }
-}
-
-// Function to create an array of numbers from 1 to 10 and shuffle it
-function createShuffledArray10() {
-    var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    shuffleArray(numbers);
-    return numbers;
-}
-
-// Function to create an array of 10 digits from the numbers 1 to 5 (each appearing twice) and shuffle it
-function createShuffledArray5() {
-    var numbers = [1, 2, 3, 4, 5, 1, 2, 3, 4, 5];
-    shuffleArray(numbers);
-    return numbers;
-}
-
-// Store the shuffled array of 1 to 10 numbers in a Storyline variable
-function initializeShuffledNumbers10() {
-    var player = GetPlayer();
-    var shuffledNumbers10 = createShuffledArray10();
-    console.log("Initialized shuffled numbers 10:", shuffledNumbers10); // Debugging log
-    player.SetVar("ShuffledNumbers10", shuffledNumbers10);
-}
-
-// Store the shuffled array of 1 to 5 numbers in a Storyline variable
-function initializeShuffledNumbers5() {
-    var player = GetPlayer();
-    var shuffledNumbers5 = createShuffledArray5();
-    console.log("Initialized shuffled numbers 5:", shuffledNumbers5); // Debugging log
-    player.SetVar("ShuffledNumbers5", shuffledNumbers5);
-}
-
-// Function to get the next unique random number from 1 to 10 array
-function getNextUniqueRandomNumber10() {
-    var player = GetPlayer();
-    var shuffledNumbers10 = player.GetVar("ShuffledNumbers10");
-
-    console.log("Current shuffled numbers 10:", shuffledNumbers10); // Debugging log
-
-    if (shuffledNumbers10 && shuffledNumbers10.length > 0) {
-        var nextNumber = shuffledNumbers10.shift(); // Remove the first element
-        console.log("Next number:", nextNumber); // Debugging log
-        player.SetVar("ImageState", nextNumber);
-        player.SetVar("ShuffledNumbers10", shuffledNumbers10); // Update the array in Storyline
-        console.log("Updated shuffled numbers 10:", shuffledNumbers10); // Debugging log
-    } else {
-        console.log("All numbers have been used.");
-    }
-}
-
-// Function to get the next unique random number from 1 to 5 array and store in GoToSlide
-function getNextUniqueRandomNumber5() {
-    var player = GetPlayer();
-    var shuffledNumbers5 = player.GetVar("ShuffledNumbers5");
-
-    console.log("Current shuffled numbers 5:", shuffledNumbers5); // Debugging log
-
-    if (shuffledNumbers5.length > 0) {
-        var nextNumber = shuffledNumbers5.shift(); // Remove the first element
-        console.log("Next number:", nextNumber); // Debugging log
-        player.SetVar("GoToSlide", nextNumber);
-        player.SetVar("ShuffledNumbers5", shuffledNumbers5); // Update the array in Storyline
-        console.log("Updated shuffled numbers 5:", shuffledNumbers5); // Debugging log
-    } else {
-        console.log("All numbers have been used.");
-    }
-}
-
-// Initialize the shuffled arrays when the timeline starts
-initializeShuffledNumbers10();
-initializeShuffledNumbers5();
-
-// Simulate the function call to get the next unique random number from both lists
-// These should be called based on your specific use case in Storyline
-getNextUniqueRandomNumber10();
-getNextUniqueRandomNumber5();
-
+/*
+ Below is not refactored
+ */
 
 //ALL SLIDES IN SCENE 4 - on load//
 
@@ -587,9 +786,6 @@ function storeCharactersInStoryline() {
         setBlockVariablesWithTimeout(i, intervals[i - 1]);
     }
 }
-
-// Call this function to store the characters from the 'answer' and 'display' variables in Storyline
-storeCharactersInStoryline();
 
 // ALL SLIDES IN SCENE 4 - submit answer//
 
@@ -711,17 +907,8 @@ function checkCharacterInAnswer() {
             player.SetVar(incorrectAttemptVar, textEntry);
         }
     }
-    }
-   
+}
 
-// Call the function to check the character in the answer
-checkCharacterInAnswer();
-
-
-
-// ALL SLIDES SCENE 5 //
-
-// Function to get the first 10 words from Storyline text variables
 function getFirst10Words() {
     var player = GetPlayer();
     var wordsArray = [];
@@ -736,20 +923,6 @@ function getFirst10Words() {
     }
     console.log("Words Array:", wordsArray); // Debugging line
     return wordsArray;
-}
-
-// Function to normalize a string by removing diacritical marks and trimming whitespace
-function normalizeString(str) {
-    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-}
-
-// Function to filter words based on input
-function filterWords(input, wordsArray) {
-    var normalizedInput = normalizeString(input).toLowerCase();
-    console.log("Normalized Input:", normalizedInput); // Debugging line
-    return wordsArray.filter(function(word) {
-        return normalizeString(word).toLowerCase().includes(normalizedInput);
-    });
 }
 
 // Function to highlight the matching letters
@@ -946,817 +1119,3 @@ document.addEventListener('click', function(event) {
         dropdown.style.display = "none";
     }
 });
-
-// Run the function to add event listeners to text boxes
-addEventListenerToTextBox();
-
-
-// SCENE 4 & 5 LAYERS//
-
-// Function to get the next unique random number from an array of 5 elements
-function getNextUniqueRandomNumber5() {
-    var player = GetPlayer();
-    var shuffledNumbers5 = player.GetVar("ShuffledNumbers5");
-
-    console.log("Current shuffled numbers (5):", shuffledNumbers5); // Debugging log
-
-    if (shuffledNumbers5.length > 0) {
-        var nextNumber = shuffledNumbers5.shift(); // Remove the first element
-        console.log("Next number (5):", nextNumber); // Debugging log
-        player.SetVar("GoToSlide", nextNumber);
-        player.SetVar("ShuffledNumbers5", shuffledNumbers5); // Update the array in Storyline
-        console.log("Updated shuffled numbers (5):", shuffledNumbers5); // Debugging log
-    } else {
-        console.log("All numbers have been used (5).");
-    }
-}
-
-// Function to get the next unique random number from an array of 10 elements
-function getNextUniqueRandomNumber10() {
-    var player = GetPlayer();
-    var shuffledNumbers10 = player.GetVar("ShuffledNumbers10");
-
-    console.log("Current shuffled numbers (10):", shuffledNumbers10); // Debugging log
-
-    if (shuffledNumbers10.length > 0) {
-        var nextNumber = shuffledNumbers10.shift(); // Remove the first element
-        console.log("Next number (10):", nextNumber); // Debugging log
-        player.SetVar("ImageState", nextNumber);
-        console.log("ImageState:", nextNumber);
-        player.SetVar("ShuffledNumbers10", shuffledNumbers10); // Update the array in Storyline
-        console.log("Updated shuffled numbers (10):", shuffledNumbers10); // Debugging log
-    } else {
-        console.log("All numbers have been used (10).");
-    }
-}
-
-// Call the appropriate function based on your requirement
-// Uncomment the function you need to call
-
-getNextUniqueRandomNumber5();
-getNextUniqueRandomNumber10();
-
-
-// MENU SLIDE MASTER - review click //
-
-function getWords() {
-    console.log("getWords called - Verifying GET method");
-
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
-    }
-
-    var userName = player.GetVar("data_userName");
-
-    if (!userName) {
-        console.error("userName is not set");
-        return;
-    }
-
-    console.log("userName:", userName);
-
-    const url = `https://api.olscloudserver.site/getWords?userName=${encodeURIComponent(userName)}`;
-
-    console.log("Data to be sent:", url);
-
-    fetch(url, {
-        method: 'GET'
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        if (result.success) {
-            const words = result.words;
-            for (let i = 1; i <= 50; i++) {
-                const tfWord = words[`Word_${i}`] || false;
-                player.SetVar(`TF_Word_${i}`, tfWord);
-                console.log(`TF_Word_${i} retrieved as:`, tfWord);
-            }
-        } else {
-            console.error("Failed to retrieve words:", result.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-    });
-}
-
-// Call getWords function when needed
-getWords();
-
-// MENU SLIDE MASTER - review click //
-
-function getPhrases() {
-    console.log("getPhrases called - Verifying GET method");
-
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
-    }
-
-    var userName = player.GetVar("data_userName");
-
-    if (!userName) {
-        console.error("userName is not set");
-        return;
-    }
-
-    console.log("userName:", userName);
-
-    const url = `https://api.olscloudserver.site/getPhrases?userName=${encodeURIComponent(userName)}`;
-
-    console.log("Data to be sent:", url);
-
-    fetch(url, {
-        method: 'GET'
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        if (result.success) {
-            const phrases = result.phrases;
-            for (let i = 1; i <= 50; i++) {
-                const tfPhrase = phrases[`TF_Phrase_${i}`] || false;
-                player.SetVar(`TF_Phrase_${i}`, tfPhrase);
-                console.log(`TF_Phrase_${i} retrieved as:`, tfPhrase);
-            }
-        } else {
-            console.error("Failed to retrieve phrases:", result.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-    });
-}
-
-// Call getPhrases function when needed
-getPhrases();
-
-
-
-// Slide 3.1 SCORES - on load //
-
-// LEVEL 1 //
-
-function onSlideLoad() {
-
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
-    }
-
-    var userName = player.GetVar("data_userName");
-
-    if (!userName) {
-        console.error("userName is not set");
-        return;
-    }
-
-    const url = `https://api.olscloudserver.site/getUserData?userName=${encodeURIComponent(userName)}`;
-
-    console.log("Data to be sent:", url);
-
-    fetch(url, {
-        method: 'GET'
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        if (result.success) {
-
-            // Process yetiScoresLevel1
-            const fetchedYetiScoresLevel1 = result.yetiScoresLevel1 || [];
-            const yetiScoresLevel1String = fetchedYetiScoresLevel1.join(',');
-            player.SetVar("yetiScoresLevel1", yetiScoresLevel1String); // Convert array to comma-separated string
-            console.log("SCORE PAGE TIMELINE: LEVEL1", yetiScoresLevel1String);
-
-            // Example: Update current score, high score, and top scores
-            if (fetchedYetiScoresLevel1.length > 0) {
-                const currentScore = fetchedYetiScoresLevel1[fetchedYetiScoresLevel1.length - 1];
-                const highScore = Math.max(...fetchedYetiScoresLevel1);
-
-                // Exclude the latest score and the high score from the array
-                const scoresExcludingLastAndHigh = fetchedYetiScoresLevel1.slice(0, -1).filter(score => score !== highScore);
-
-                // Sort the remaining scores in descending order
-                const sortedScores = scoresExcludingLastAndHigh.sort((a, b) => b - a);
-                const topScores = sortedScores.slice(0, 4);
-
-                player.SetVar("data_currentScoreLevel1", currentScore);
-                player.SetVar("data_highScoreLevel1", highScore);
-                player.SetVar("data_scoreLevel1_1", topScores[0] || '');
-                player.SetVar("data_scoreLevel1_2", topScores[1] || '');
-                player.SetVar("data_scoreLevel1_3", topScores[2] || '');
-                player.SetVar("data_scoreLevel1_4", topScores[3] || '');
-
-                console.log("Updated data_currentScoreLevel1 to:", currentScore);
-                console.log("Updated data_highScoreLevel1 to:", highScore);
-                console.log("Updated data_scoreLevel1_1 to:", topScores[0] || '');
-                console.log("Updated data_scoreLevel1_2 to:", topScores[1] || '');
-                console.log("Updated data_scoreLevel1_3 to:", topScores[2] || '');
-                console.log("Updated data_scoreLevel1_4 to:", topScores[3] || '');
-            }
-        } else {
-            console.error("Failed to retrieve user data:", result.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-    });
-}
-
-// Call onSlideLoad when the slide loads
-onSlideLoad();
-
-
-// Slide 3.1 SCORES - on load //
-
-// LEVEL 2 //
-
-function onSlideLoad() {
-
-
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
-    }
-
-    var userName = player.GetVar("data_userName");
-
-    if (!userName) {
-        console.error("userName is not set");
-        return;
-    }
-
-    const url = `https://api.olscloudserver.site/getUserData?userName=${encodeURIComponent(userName)}`;
-
-    console.log("Data to be sent:", url);
-
-    fetch(url, {
-        method: 'GET'
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        if (result.success) {
-
-            // Process yetiScoresLevel1
-            const fetchedYetiScoresLevel2 = result.yetiScoresLevel2 || [];
-            const yetiScoresLevel2String = fetchedYetiScoresLevel2.join(',');
-            player.SetVar("yetiScoresLevel2", yetiScoresLevel2String); // Convert array to comma-separated string
-            console.log("SCOREPAGE TIMELINE LEVEL 2", yetiScoresLevel2String);
-
-            // Example: Update current score, high score, and top scores
-            if (fetchedYetiScoresLevel2.length > 0) {
-                const currentScore = fetchedYetiScoresLevel2[fetchedYetiScoresLevel2.length - 1];
-                const highScore = Math.max(...fetchedYetiScoresLevel2);
-
-                // Exclude the latest score and the high score from the array
-                const scoresExcludingLastAndHigh = fetchedYetiScoresLevel2.slice(0, -1).filter(score => score !== highScore);
-
-                // Sort the remaining scores in descending order
-                const sortedScores = scoresExcludingLastAndHigh.sort((a, b) => b - a);
-                const topScores = sortedScores.slice(0, 4);
-
-                player.SetVar("data_currentScoreLevel2", currentScore);
-                player.SetVar("data_highScoreLevel2", highScore);
-                player.SetVar("data_scoreLevel2_1", topScores[0] || '');
-                player.SetVar("data_scoreLevel2_2", topScores[1] || '');
-                player.SetVar("data_scoreLevel2_3", topScores[2] || '');
-                player.SetVar("data_scoreLevel2_4", topScores[3] || '');
-
-                console.log("Updated data_currentScoreLevel2 to:", currentScore);
-                console.log("Updated data_highScoreLevel2 to:", highScore);
-                console.log("Updated data_scoreLevel2_1 to:", topScores[0] || '');
-                console.log("Updated data_scoreLevel2_2 to:", topScores[1] || '');
-                console.log("Updated data_scoreLevel2_3 to:", topScores[2] || '');
-                console.log("Updated data_scoreLevel2_4 to:", topScores[3] || '');
-            }
-        } else {
-            console.error("Failed to retrieve user data:", result.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-    });
-}
-
-// Call onSlideLoad when the slide loads
-onSlideLoad();
-
-
-// SLIDE 3.7 LEADERBOARD - on load //
-
-//LEVEL 1//
-
-function loadLeaderboardLevel1() {
-    console.log("Loading leaderboard");
-
-    const url = `https://api.olscloudserver.site/leaderboardLevel1`;
-
-    fetch(url, {
-        method: 'GET'
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        if (result.success) {
-            const leaderboardLevel1 = result.leaderboardLevel1;
-            displayLeaderboardLevel1(leaderboardLevel1);
-        } else {
-            console.error("Failed to retrieve leaderboard data:", result.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-    });
-}
-
-function displayLeaderboardLevel1(leaderboardLevel1) {
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
-    }
-
-    // Assuming you have Storyline variables for each leaderboard entry
-    leaderboardLevel1.slice(0, 10).forEach((entry, index) => {
-        player.SetVar(`leaderboardLevel1_userName_${index + 1}`, entry.userName);
-        player.SetVar(`leaderboard_highestScoreLevel1_${index + 1}`, entry.score);
-        player.SetVar(`leaderboardLevel1_userAvatar_${index + 1}`, entry.userAvatar);
-    });
-
-    // Log the leaderboard to the console for verification
-    console.log("LeaderboardLevel1:", leaderboardLevel1.slice(0, 10));
-}
-
-// Call loadLeaderboard when needed
-loadLeaderboardLevel1();
-
-// SLIDE 3.7 LEADERBOARD - on load //
-
-//LEVEL 2//
-
-function loadLeaderboardLevel2() {
-    console.log("Loading leaderboard");
-
-    const url = `https://api.olscloudserver.site/leaderboardLevel2`;
-
-    fetch(url, {
-        method: 'GET'
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        if (result.success) {
-            const leaderboardLevel2 = result.leaderboardLevel2;
-            displayLeaderboardLevel2(leaderboardLevel2);
-        } else {
-            console.error("Failed to retrieve leaderboard data:", result.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-    });
-}
-
-function displayLeaderboardLevel2(leaderboardLevel2) {
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
-    }
-
-    // Assuming you have Storyline variables for each leaderboard entry
-    leaderboardLevel2.slice(0, 10).forEach((entry, index) => {
-        player.SetVar(`leaderboardLevel2_userName_${index + 1}`, entry.userName);
-        player.SetVar(`leaderboard_highestScoreLevel2_${index + 1}`, entry.score);
-        player.SetVar(`leaderboardLevel2_userAvatar_${index + 1}`, entry.userAvatar);
-    });
-
-    // Log the leaderboard to the console for verification
-    console.log("LeaderboardLevel2:", leaderboardLevel2.slice(0, 10));
-}
-
-// Call loadLeaderboard when needed
-loadLeaderboardLevel2();
-
-//INTRO SCREEN - on load (target language)//
-
-// Function to update Storyline variables based on the selected language
-function updateVariablesBasedOnLanguage(xmlDoc) {
-    var player = GetPlayer();
-    var selectedLanguage = player.GetVar("targetLanguage");
-
-    // Iterate over each <Key> element in the XML
-    var keyElements = xmlDoc.getElementsByTagName("Key");
-    for (var i = 0; i < keyElements.length; i++) {
-        var keyElement = keyElements[i];
-        var variableName = keyElement.textContent.trim(); // Get the variable name from the <Key> element
-
-        // Find the corresponding language data for the selected language
-        var languageData = keyElement.parentElement.querySelector(selectedLanguage);
-
-        // Check if language data exists
-        if (languageData) {
-            var variableValue = languageData.textContent.trim(); // Get the variable value from the language data
-
-            // Update the Storyline variable with the retrieved text data
-            player.SetVar(variableName, variableValue);
-        } else {
-            console.error("Language data not found for language: " + selectedLanguage);
-        }
-    }
-}
-
-// Load XML file and update Storyline variables based on the selected language
-var xhr = new XMLHttpRequest();
-xhr.onreadystatechange = function() {
-    if (xhr.readyState == 4 && xhr.status == 200) {
-        var parser = new DOMParser();
-        var xmlDoc = parser.parseFromString(xhr.responseText, "application/xml");
-        updateVariablesBasedOnLanguage(xmlDoc);
-    }
-};
-xhr.open("GET", "https://academy.europa.eu/pluginfile.php/1230926/mod_resource/content/1/game_1.xml", true); // Replace 'https://example.com/your-xml-file.xml' with the actual URL of your XML file
-xhr.send();
-
-//INTRO SCREEN - on load (help language)//
-
-// Function to update Storyline variables based on the selected language
-function updateVariablesBasedOnLanguage(xmlDoc) {
-    var player = GetPlayer();
-    var selectedLanguage = player.GetVar("helpLanguage");
-
-    // Iterate over each <Key> element in the XML
-    var keyElements = xmlDoc.getElementsByTagName("Key");
-    for (var i = 0; i < keyElements.length; i++) {
-        var keyElement = keyElements[i];
-        var variableName = keyElement.textContent.trim(); // Get the variable name from the <Key> element
-
-        // Find the corresponding language data for the selected language
-        var languageData = keyElement.parentElement.querySelector(selectedLanguage);
-
-        // Check if language data exists
-        if (languageData) {
-            var variableValue = languageData.textContent.trim(); // Get the variable value from the language data
-
-            // Update the Storyline variable with the retrieved text data
-            player.SetVar(variableName, variableValue);
-        } else {
-            console.error("Language data not found for language: " + selectedLanguage);
-        }
-    }
-}
-
-// Load XML file and update Storyline variables based on the selected language
-var xhr = new XMLHttpRequest();
-xhr.onreadystatechange = function() {
-    if (xhr.readyState == 4 && xhr.status == 200) {
-        var parser = new DOMParser();
-        var xmlDoc = parser.parseFromString(xhr.responseText, "application/xml");
-        updateVariablesBasedOnLanguage(xmlDoc);
-    }
-};
-xhr.open("GET", "https://academy.europa.eu/pluginfile.php/1230879/mod_resource/content/1/game_1_help_language.xml", true); // Replace 'https://example.com/your-xml-file.xml' with the actual URL of your XML file
-xhr.send();
-
-
-// FORGOT TO ADD THESE IMPORTANT FUNCTIONS TO GLOBALS //
-// LEVEL 1 //
-
-function updateScores() {
-    console.log("updateScores called - Verifying POST method");
-
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
-    }
-
-    var userName = player.GetVar("data_userName");
-    let yetiScoresLevel1 = player.GetVar("yetiScoresLevel1") || '';
-
-    console.log("MY SCORES: EXISTING LEVEL 1:", yetiScoresLevel1);
-
-    var newScore = player.GetVar("scoreLevel1");
-
-    // Convert newScore to a number explicitly
-    newScore = Number(newScore);
-
-    if (isNaN(newScore)) {
-        console.error("New score must be a number:", newScore);
-        return;
-    }
-
-    // Check if the new score is different from the last score in the array
-    const scoresArray = yetiScoresLevel1.split(',').map(Number);
-    const lastScore = scoresArray[scoresArray.length - 1];
-
-    if (newScore === lastScore) {
-        console.log("New score is the same as the last score. No update needed.");
-        return;
-    }
-
-    if (yetiScoresLevel1.length > 0) {
-        yetiScoresLevel1 += ',';
-    }
-    yetiScoresLevel1 += newScore;
-
-    console.log("MY SCORES: UPDATED LEVEL 1:", yetiScoresLevel1); // Log the updated yetiScores string
-
-    const url = `https://api.olscloudserver.site/yetiScoresLevel1`;
-
-    const data = {
-        userName: userName,
-        yetiScoresLevel1: yetiScoresLevel1.split(',').map(Number) // Convert string to array of numbers
-    };
-
-    console.log("Data to be sent:", data);
-
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        // Handle the result accordingly
-        if (result.success) {
-            console.log("Scores updated successfully");
-            player.SetVar("scoreUpdateStatus", 'Success');
-        } else {
-            console.log("Score update failed");
-            player.SetVar("scoreUpdateStatus", 'Failed');
-        }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-        player.SetVar("scoreUpdateStatus", 'Error');
-    });
-}
-
-updateScores();
-
-
-// LEVEL 2 //
-
-function updateScores() {
-
-
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
-    }
-
-    var userName = player.GetVar("data_userName");
-    let yetiScoresLevel2 = player.GetVar("yetiScoresLevel2") || '';
-
-    console.log("userName:", userName);
-    console.log("MY SCORES: EXISTING LEVEL2", yetiScoresLevel2);
-
-    var newScore = player.GetVar("scoreLevel2");
-
-    // Convert newScore to a number explicitly
-    newScore = Number(newScore);
-
-    if (isNaN(newScore)) {
-        console.error("New score must be a number:", newScore);
-        return;
-    }
-
-    // Check if the new score is different from the last score in the array
-    const scoresArray = yetiScoresLevel2.split(',').map(Number);
-    const lastScore = scoresArray[scoresArray.length - 1];
-
-    if (newScore === lastScore) {
-        console.log("New score is the same as the last score. No update needed.");
-        return;
-    }
-
-    if (yetiScoresLevel2.length > 0) {
-        yetiScoresLevel2 += ',';
-    }
-    yetiScoresLevel2 += newScore;
-
-    console.log("MY SCORES: UPDTAED LEVEL 2:", yetiScoresLevel2); // Log the updated yetiScores string
-
-    const url = `https://api.olscloudserver.site/yetiScoresLevel2`;
-
-    const data = {
-        userName: userName,
-        yetiScoresLevel2: yetiScoresLevel2.split(',').map(Number) // Convert string to array of numbers
-    };
-
-    console.log("Data to be sent:", data);
-
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        // Handle the result accordingly
-        if (result.success) {
-
-            player.SetVar("scoreUpdateStatus", 'Success');
-        } else {
-
-            player.SetVar("scoreUpdateStatus", 'Failed');
-        }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-        player.SetVar("scoreUpdateStatus", 'Error');
-    });
-}
-
-updateScores();
-
-
-function updateWords() {
-    console.log("updateWords called - Verifying POST method");
-
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
-    }
-
-    var userName = player.GetVar("data_userName");
-
-    console.log("userName:", userName);
-
-    const wordsToUpdate = {};
-
-    for (let i = 1; i <= 50; i++) {
-        const tfWord = player.GetVar(`TF_Word_${i}`);
-        wordsToUpdate[`Word_${i}`] = tfWord;
-        console.log(`TF_Word_${i} to be updated to:`, tfWord);
-    }
-
-    const url = `https://api.olscloudserver.site/updateWords`;
-
-    const data = {
-        userName: userName,
-        wordsToUpdate: wordsToUpdate
-    };
-
-    console.log("Data to be sent:", data);
-
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        if (result.success) {
-            console.log("Words updated successfully");
-            player.SetVar("wordUpdateStatus", 'Success');
-        } else {
-            console.log("Word update failed");
-            player.SetVar("wordUpdateStatus", 'Failed');
-        }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-        player.SetVar("wordUpdateStatus", 'Error');
-    });
-}
-
-// Call updateWords function when needed
-updateWords();
-
-function updatePhrases() {
-    console.log("updatePhrases called - Verifying POST method");
-
-    const player = GetPlayer();
-    if (!player) {
-        console.error("GetPlayer returned null or undefined");
-        return;
-    }
-
-    var userName = player.GetVar("data_userName");
-
-    console.log("userName:", userName);
-
-    const phrasesToUpdate = {};
-
-    for (let i = 1; i <= 50; i++) {
-        const tfPhrase = player.GetVar(`TF_Phrase_${i}`);
-        phrasesToUpdate[`TF_Phrase_${i}`] = tfPhrase;
-        console.log(`TF_Phrase_${i} to be updated to:`, tfPhrase);
-    }
-
-    const url = `https://api.olscloudserver.site/updatePhrases`;
-
-    const data = {
-        userName: userName,
-        phrasesToUpdate: phrasesToUpdate
-    };
-
-    console.log("Data to be sent:", data);
-
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        console.log("Fetch response received:", response);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log("Result:", result);
-        if (result.success) {
-            console.log("Phrases updated successfully");
-            player.SetVar("phraseUpdateStatus", 'Success');
-        } else {
-            console.log("Phrase update failed");
-            player.SetVar("phraseUpdateStatus", 'Failed');
-        }
-    })
-    .catch(error => {
-        console.error('Error in fetch:', error);
-        player.SetVar("phraseUpdateStatus", 'Error');
-    });
-}
-
-// Call updatePhrases function when needed
-updatePhrases();
