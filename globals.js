@@ -3,8 +3,8 @@ const API_BASEURL = "https://api.olscloudserver.site"
 
 player = new Player(global)
 
-player.targetLanguageUrl = "https://academy.europa.eu/pluginfile.php/1230926/mod_resource/content/1/game_1.xml"
-player.helpLanguageUrl = "https://academy.europa.eu/pluginfile.php/1230879/mod_resource/content/1/game_1_help_language.xml"
+player.targetLanguageUrl = "https://academy.europa.eu/pluginfile.php/1275656/mod_resource/content/1/game_1_A1.xml"
+player.helpLanguageUrl = "https://academy.europa.eu/pluginfile.php/1275653/mod_resource/content/1/game_1_help_language.xml"
 
 function Player(player) {
     this.player = player.GetPlayer()
