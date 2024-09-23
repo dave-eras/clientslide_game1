@@ -703,6 +703,48 @@ function Request(URL, method, headers, data){
 
 //ALL SLIDES IN SCENE 4 - on load//
 
+//1. TAKE A SENTENCE WITH MARK UP FROM AN XML AND SORT IT INTO 4 SEPARATE VARIABLES //
+
+function processSentence() {
+    let player = GetPlayer(); // Assuming GetPlayer() is a function that returns the Storyline player object
+    let sentence = player.GetVar("Phrase_1"); // Get the raw text from the XML
+
+    // Extract the text between asterisks
+    let regex = /\*(.*?)\*/;
+    let match = regex.exec(sentence);
+    if (!match) {
+        console.error("No text found between asterisks.");
+        return;
+    }
+    let answer = match[1];
+
+    // Replace characters between asterisks with underscores, keeping spaces
+    let underscoreText = answer.replace(/[^ ]/g, '_');
+
+    // Remove asterisks and replace text between asterisks with underscores in the original sentence
+    let sentence_with_gap = sentence.replace(regex, underscoreText);
+
+    // Create the display variable by replacing all characters between asterisks with underscores
+    let display = underscoreText;
+
+    // Set the variables in the Storyline player
+    player.SetVar("sentence", sentence);
+    player.SetVar("sentence_with_gap", sentence_with_gap);
+    player.SetVar("answer", answer);
+    player.SetVar("display", display);
+
+    // Log the results for debugging
+     console.log(`sentence: ${sentence}`);
+    console.log(`sentence_with_gap: ${sentence_with_gap}`);
+    console.log(`answer: ${answer}`);
+    console.log(`display: ${display}`);
+}
+
+// Call the function to process the sentence
+processSentence();
+
+//2. SET THE VALUES OF THE MISSING LETTERS ACCORDING TO A GRID LOGIC //
+
 function storeCharactersInStoryline() {
     let player = GetPlayer();
 
@@ -787,7 +829,7 @@ function storeCharactersInStoryline() {
     }
 }
 
-// ALL SLIDES IN SCENE 4 - submit answer//
+//3. WHEN USER SUBMITS A LETTER or a whole phrase ... There are 31 separate instances of this://
 
 function checkCharacterInAnswer() {
     let player = GetPlayer();
