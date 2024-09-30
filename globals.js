@@ -1,13 +1,17 @@
-
 const API_BASEURL = "https://api.olscloudserver.site"
 
-player = new Player(global)
+player = new Player(player)
+jungle = new Jungle(player)
+
+player.player.SetVar("Phrase_1","You choose your clothes and get *dressed at a* quarter to eight.")
+jungle.GenerateQuestion()
 
 player.targetLanguageUrl = "https://academy.europa.eu/pluginfile.php/1275656/mod_resource/content/1/game_1_A1.xml"
 player.helpLanguageUrl = "https://academy.europa.eu/pluginfile.php/1275653/mod_resource/content/1/game_1_help_language.xml"
 
 function Player(player) {
     this.player = player.GetPlayer()
+    this.jungle = null
     this.username = ""
     this.password = ""
     this.avatar = ""
@@ -554,6 +558,175 @@ function Player(player) {
                 break
         }
     }
+    this.getWords = function(number) {
+        this.Words()
+        var wordsArray = [];
+
+        for (var i = 1; i <= number; i++) {
+            var word = this.player.player.GetVar("Word_" + i);
+
+            if (word) {
+                wordsArray.push(word);
+            }
+        }
+
+        return wordsArray;
+    }
+
+    this.StartJungle = function(){
+        if (this.jungle != null) {
+            delete this.jungle
+        }
+
+        this.jungle = new Jungle(this)
+    }
+}
+function Jungle(player){
+    this.player = player
+
+    this.sentence = ""
+    this.masked = ""
+    this.answer = ""
+    this.mask = ""
+    this.characters = []
+    this.guessed = []
+    this.wrongGuesses = 0
+
+    this.GenerateQuestion =function() {
+        this.sentence = player.player.GetVar("Phrase_1")
+
+        this.answer = this.sentence.substring(
+            this.sentence.indexOf("*") + 1,
+            this.sentence.lastIndexOf("*")
+        );
+
+        this.mask = "_".repeat(answer.length)
+
+        let space = this.answer.lastIndexOf(" ")
+        while (space !== -1) {
+            this.mask = this.mask.substring(0, space) + ' ' + this.mask.substring(space + 1);
+            space = this.answer.lastIndexOf(" ", space - 1)
+        }
+
+        this.masked = this.sentence.replace("*" + this.answer + "*", this.mask)
+
+        player.player.SetVar("sentence", this.sentence);
+        player.player.SetVar("sentence_with_gap", this.masked);
+        player.player.SetVar("answer", this.answer);
+        player.player.SetVar("display", this.mask);
+    }
+
+    this.storeCharactersInStoryline = function(){
+        this.processAndStore("character", this.answer);
+        this.processAndStore("display", this.mask);
+
+        this.player.player.SetVar("lettersToGuess", this.mask.replaceAll(' ', '').length);
+
+        let intervals = [0, 180, 340, 480, 600, 700, 790, 870, 940, 1000];
+        for (let i = 1; i <= 10; i++) {
+            this.setBlockVariablesWithTimeout(i, intervals[i - 1]);
+        }
+    }
+    this.processAndStore = function(prefix, text) {
+        let words = text.split(' ');
+        let lineLength = 0;
+        let line, nextLine = 0
+
+        for (let word of words) {
+            nextLine = lineLength + word.length / 10
+
+            if (nextLine > line) {
+                while (lineLength % 10 !== 0) {
+                    this.characters.push(' ');
+                    lineLength++;
+                }
+
+                line = nextLine
+            }
+
+            for (let character of word) {
+                this.characters.push(character);
+                lineLength++;
+            }
+
+            this.characters.push(' ');
+            lineLength++;
+        }
+
+        while (this.characters.length < 30) {
+            this.characters.push(' ');
+        }
+
+        this.characters = this.characters.slice(0, 30);
+        this.characters = characters
+
+        for (let i = 0; i < 30; i++) {
+            this.player.player.SetVar(`${prefix}_${i + 1}`, characters[i] || ' ');
+        }
+    }
+    this.setBlockVariablesWithTimeout = function(index, interval) {
+        setTimeout(() => {
+            let indices = [index, index + 10, index + 20];
+            indices.forEach(i => {
+                let blockVariable = `block_${i}`;
+
+                if (this.characters[i].trim() === '') {
+                    this.player.player.SetVar(blockVariable, false);
+                } else {
+                    this.player.player.SetVar(blockVariable, true);
+                }
+            });
+        }, interval);
+    }
+
+    this.checkCharacterInAnswer = function(){
+        let entry = player.GetVar("TextEntry").toLowerCase();
+        let position = player.GetVar("whichCharacter");
+        let display = player.GetVar("display");
+
+        this.guessed.push(entry)
+
+        console.log(`TextEntry: ${entry}, whichCharacter: ${position}`);
+        console.log(`Answer: ${this.answer}`);
+        console.log(`Display: ${this.mask}`);
+        console.log(`Letters Guessed Array: ${this.guessed}`);
+
+        const normalizedEntry = this.normalize(entry)
+
+        if (this.characters[position - 1].toLowerCase() === normalizedEntry) {
+            player.SetVar(`${position}`, "true");
+        } else {
+            player.SetVar(`${position}`, "false");
+
+            // Now check other position if they match the letter if yes set it to true
+            let found = false
+            for (const [char, position] in this.characters) {
+                if (char.toLowerCase() === normalizedEntry) {
+                    player.SetVar(`${position}`, "true");
+                    found = true
+                }
+            }
+
+            if (!found) {
+                player.SetVar("numberOfWrongAttempts", ++this.wrongGuesses);
+
+                if (this.wrongGuesses >= 1 && this.wrongGuesses <= 7) {
+                    player.SetVar(`incorrectAttempt_${this.wrongGuesses}`, entry);
+                }
+            }
+        }
+    }
+    this.normalize = function(char) {
+        return char.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    this.checkAnswer = function(selectedWord, player) {
+        const correctAnswer = this.player.player.GetVar("CorrectAnswer");
+        var matchFound = (normalizeString(selectedWord).toLowerCase() === normalizeString(correctAnswer).toLowerCase());
+
+        this.player.player.SetVar("CorrectAnswerGiven", matchFound);
+        this.player.player.SetVar("WrongAnswerGiven", !matchFound);
+    }
 }
 
 /*
@@ -697,294 +870,53 @@ function Request(URL, method, headers, data){
     }
 }
 
-/*
- Below is not refactored
- */
-
-//ALL SLIDES IN SCENE 4 - on load//
-
-//1. TAKE A SENTENCE WITH MARK UP FROM AN XML AND SORT IT INTO 4 SEPARATE VARIABLES //
-
-function processSentence() {
-    let player = GetPlayer(); // Assuming GetPlayer() is a function that returns the Storyline player object
-    let sentence = player.GetVar("Phrase_1"); // Get the raw text from the XML
-
-    // Extract the text between asterisks
-    let regex = /\*(.*?)\*/;
-    let match = regex.exec(sentence);
-    if (!match) {
-        console.error("No text found between asterisks.");
-        return;
-    }
-    let answer = match[1];
-
-    // Replace characters between asterisks with underscores, keeping spaces
-    let underscoreText = answer.replace(/[^ ]/g, '_');
-
-    // Remove asterisks and replace text between asterisks with underscores in the original sentence
-    let sentence_with_gap = sentence.replace(regex, underscoreText);
-
-    // Create the display variable by replacing all characters between asterisks with underscores
-    let display = underscoreText;
-
-    // Set the variables in the Storyline player
-    player.SetVar("sentence", sentence);
-    player.SetVar("sentence_with_gap", sentence_with_gap);
-    player.SetVar("answer", answer);
-    player.SetVar("display", display);
-
-    // Log the results for debugging
-     console.log(`sentence: ${sentence}`);
-    console.log(`sentence_with_gap: ${sentence_with_gap}`);
-    console.log(`answer: ${answer}`);
-    console.log(`display: ${display}`);
+// Function to update the focused option in the dropdown
+function updateFocusedOption(options, index, inputValue) {
+    console.log("Updating focused option:", index); // Debugging line
+    options.forEach((option, i) => {
+        if (i === index) {
+            option.style.backgroundColor = "#F4E3D7";
+            option.style.color = "#000";
+            option.innerHTML = highlightMatch(option.textContent, inputValue, true);
+            option.scrollIntoView({ block: "nearest" }); // Ensure the focused option is visible
+        } else {
+            option.style.backgroundColor = "#000";
+            option.style.color = "#fff";
+            option.innerHTML = highlightMatch(option.textContent, inputValue, false);
+        }
+    });
 }
 
-// Call the function to process the sentence
-processSentence();
+// Add event listeners to the text boxes for the dropdown functionality
+function addEventListenerToTextBox() {
+    var inputElements = document.querySelectorAll('input[type="text"]'); // Adjust the selector as needed
+    console.log("Adding event listeners to text boxes:", inputElements.length); // Debugging line
+    inputElements.forEach(function(inputElement) {
+        // Set autocomplete attribute to off to prevent browser autofill
+        inputElement.setAttribute('autocomplete', 'off');
 
-//2. SET THE VALUES OF THE MISSING LETTERS ACCORDING TO A GRID LOGIC //
+        // Add a fake hidden input to trick the browser
+        var fakeInput = document.createElement('input');
+        fakeInput.setAttribute('type', 'text');
+        fakeInput.setAttribute('style', 'display: none;');
+        inputElement.parentNode.insertBefore(fakeInput, inputElement);
 
-function storeCharactersInStoryline() {
-    let player = GetPlayer();
+        inputElement.addEventListener("input", function() {
+            console.log("Input event triggered."); // Debugging line
+            var wordsArray = player.getWords(10); // Only get the first 10 words
+            var filteredWords = filterWords(inputElement.value, wordsArray);
+            updateDropdown(filteredWords, inputElement);
+        });
 
-    function processAndStore(variableNamePrefix, inputText) {
-        console.log(`${variableNamePrefix} text retrieved from Storyline:`, inputText);
-        let words = inputText.split(' ');
-        let characters = [];
-        let currentLineLength = 0;
-
-        for (let word of words) {
-            if (currentLineLength + word.length > 10) {
-                // Add spaces to fill the rest of the current line
-                while (currentLineLength < 10) {
-                    characters.push(' ');
-                    currentLineLength++;
-                }
-                currentLineLength = 0;
-            }
-
-            for (let char of word) {
-                characters.push(char);
-                currentLineLength++;
-            }
-
-            // Add a space after each word, except the last one
-            if (currentLineLength < 10) {
-                characters.push(' ');
-                currentLineLength++;
-            }
-        }
-
-        // Fill the remaining spaces with blanks if less than 30 characters
-        while (characters.length < 30) {
-            characters.push(' ');
-        }
-
-        // Ensure the characters array has exactly 30 elements
-        characters = characters.slice(0, 30);
-
-        // Store characters in Storyline variables explicitly
-        for (let i = 0; i < 30; i++) {
-            let variableName = `${variableNamePrefix}_${i + 1}`;
-            player.SetVar(variableName, characters[i] || ' ');
-            console.log(`Set ${variableName} to ${characters[i] || ' '}`); // Debugging log
-        }
-
-        console.log(`Characters stored in Storyline variables for ${variableNamePrefix}:`, characters);
-    }
-
-    // Process and store 'answer' variable
-    let answer = player.GetVar("answer");
-    processAndStore("character", answer);
-
-    // Process and store 'display' variable
-    let display = player.GetVar("display");
-    processAndStore("display", display);
-
-    // Sum the number of '_' in 'display' and set 'lettersToGuess' in Storyline
-    let lettersToGuess = (display.match(/_/g) || []).length;
-    player.SetVar("lettersToGuess", lettersToGuess);
-
-    // Function to set block variables with timeout
-    function setBlockVariablesWithTimeout(index, interval) {
-        setTimeout(() => {
-            let indices = [index, index + 10, index + 20];
-            indices.forEach(i => {
-                let characterVariable = `character_${i}`;
-                let blockVariable = `block_${i}`;
-                if (!player.GetVar(characterVariable) || player.GetVar(characterVariable).trim() === '') {
-                    player.SetVar(blockVariable, false);
-                } else {
-                    player.SetVar(blockVariable, true);
-                }
-            });
-        }, interval);
-    }
-
-    // Set block variables at intervals
-    let intervals = [0, 180, 340, 480, 600, 700, 790, 870, 940, 1000];
-    for (let i = 1; i <= 10; i++) {
-        setBlockVariablesWithTimeout(i, intervals[i - 1]);
-    }
+        // Add blur event listener to set the TextEntry variable when the input loses focus
+        inputElement.addEventListener("blur", function() {
+            var player = GetPlayer();
+            player.SetVar("TextEntry", inputElement.value);
+        });
+    });
 }
 
-//3. WHEN USER SUBMITS A LETTER or a whole phrase ... There are 31 separate instances of this://
-
-function checkCharacterInAnswer() {
-    let player = GetPlayer();
-    let textEntry = player.GetVar("TextEntry").toLowerCase();
-    let whichCharacter = player.GetVar("whichCharacter");
-    let answer = player.GetVar("answer");
-    let display = player.GetVar("display");
-    let lettersGuessed = player.GetVar("lettersGuessedArray") || "";
-
-    // Append the textEntry to the lettersGuessed string
-    if (lettersGuessed.length > 0) {
-        lettersGuessed += `,${textEntry}`;
-    } else {
-        lettersGuessed = textEntry;
-    }
-    player.SetVar("lettersGuessedArray", lettersGuessed);
-
-    console.log(`TextEntry: ${textEntry}, whichCharacter: ${whichCharacter}`);
-    console.log(`Answer: ${answer}`);
-    console.log(`Display: ${display}`);
-    console.log(`Letters Guessed Array: ${lettersGuessed}`);
-
-    // Process the 'answer' variable
-    let answerWords = answer.split(' ');
-    let answerCharacters = [];
-    let currentLineLength = 0;
-
-    for (let word of answerWords) {
-        if (currentLineLength + word.length > 10) {
-            while (currentLineLength < 10) {
-                answerCharacters.push(' ');
-                currentLineLength++;
-            }
-            currentLineLength = 0;
-        }
-
-        for (let char of word) {
-            answerCharacters.push(char);
-            currentLineLength++;
-        }
-
-        if (currentLineLength < 10) {
-            answerCharacters.push(' ');
-            currentLineLength++;
-        }
-    }
-
-    while (answerCharacters.length < 30) {
-        answerCharacters.push(' ');
-    }
-
-    answerCharacters = answerCharacters.slice(0, 30);
-    console.log(`Processed Answer Characters: ${answerCharacters}`);
-
-    // Process the 'display' variable
-    let displayWords = display.split(' ');
-    let displayCharacters = [];
-    currentLineLength = 0;
-
-    for (let word of displayWords) {
-        if (currentLineLength + word.length > 10) {
-            while (currentLineLength < 10) {
-                displayCharacters.push(' ');
-                currentLineLength++;
-            }
-            currentLineLength = 0;
-        }
-
-        for (let char of word) {
-            displayCharacters.push(char);
-            currentLineLength++;
-        }
-
-        if (currentLineLength < 10) {
-            displayCharacters.push(' ');
-            currentLineLength++;
-        }
-    }
-
-    while (displayCharacters.length < 30) {
-        displayCharacters.push(' ');
-    }
-
-    displayCharacters = displayCharacters.slice(0, 30);
-    console.log(`Processed Display Characters: ${displayCharacters}`);
-
-    function normalizeCharacter(char) {
-        return char.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    }
-
-    let foundMatch = false;
-
-    for (let i = 0; i < 30; i++) {
-        let variableName = `${i + 1}`;
-        let character = answerCharacters[i].toLowerCase();
-        let normalizedCharacter = normalizeCharacter(character);
-
-        console.log(`Checking character ${character} at position ${i + 1}`);
-
-        if ((character === textEntry || normalizedCharacter === textEntry) && displayCharacters[i] === '_') {
-            console.log(`Match found at position ${i + 1}`);
-            player.SetVar(variableName, "true");
-            foundMatch = true;
-        } else if (i + 1 === whichCharacter) {
-            console.log(`No match at position ${i + 1}, setting false`);
-            player.SetVar(variableName, "false");
-        }
-    }
-
-    if (!foundMatch) {
-        let numberOfWrongAttempts = player.GetVar("numberOfWrongAttempts") || 0;
-        numberOfWrongAttempts += 1;
-        player.SetVar("numberOfWrongAttempts", numberOfWrongAttempts);
-
-        if (numberOfWrongAttempts >= 1 && numberOfWrongAttempts <= 7) {
-            let incorrectAttemptVar = `incorrectAttempt_${numberOfWrongAttempts}`;
-            player.SetVar(incorrectAttemptVar, textEntry);
-        }
-    }
-}
-
-function getFirst10Words() {
-    var player = GetPlayer();
-    var wordsArray = [];
-
-    // Retrieve the first 10 words from Storyline variables
-    for (var i = 1; i <= 10; i++) {
-        var word = player.GetVar("Word_" + i);
-        console.log(`Retrieved word ${i}: ${word}`); // Debugging line
-        if (word) {
-            wordsArray.push(word);
-        }
-    }
-    console.log("Words Array:", wordsArray); // Debugging line
-    return wordsArray;
-}
-
-// Function to highlight the matching letters
-function highlightMatch(word, input, isHighlighted) {
-    var normalizedInput = normalizeString(input).toLowerCase();
-    var normalizedWord = normalizeString(word).toLowerCase();
-    var startIndex = normalizedWord.indexOf(normalizedInput);
-    if (startIndex === -1) {
-        return word; // No match found, return original word
-    }
-    var endIndex = startIndex + normalizedInput.length;
-    var underlineColor = isHighlighted ? "black" : "white";
-    return (
-        word.substring(0, startIndex) +
-        `<span style="text-decoration: underline; text-decoration-color: ${underlineColor}; color: inherit;">` +
-        word.substring(startIndex, endIndex) +
-        '</span>' +
-        word.substring(endIndex)
-    );
-}
+// Game 1
 
 // Function to update the dropdown menu
 function updateDropdown(filteredWords, inputElement) {
@@ -1094,70 +1026,29 @@ function updateDropdown(filteredWords, inputElement) {
     }
 }
 
-// Function to update the focused option in the dropdown
-function updateFocusedOption(options, index, inputValue) {
-    console.log("Updating focused option:", index); // Debugging line
-    options.forEach((option, i) => {
-        if (i === index) {
-            option.style.backgroundColor = "#F4E3D7";
-            option.style.color = "#000";
-            option.innerHTML = highlightMatch(option.textContent, inputValue, true);
-            option.scrollIntoView({ block: "nearest" }); // Ensure the focused option is visible
-        } else {
-            option.style.backgroundColor = "#000";
-            option.style.color = "#fff";
-            option.innerHTML = highlightMatch(option.textContent, inputValue, false);
-        }
-    });
+// Function to highlight the matching letters
+function highlightMatch(word, input, isHighlighted) {
+    var normalizedInput = normalizeString(input).toLowerCase();
+    var normalizedWord = normalizeString(word).toLowerCase();
+    var startIndex = normalizedWord.indexOf(normalizedInput);
+    if (startIndex === -1) {
+        return word; // No match found, return original word
+    }
+    var endIndex = startIndex + normalizedInput.length;
+    var underlineColor = isHighlighted ? "black" : "white";
+    return (
+        word.substring(0, startIndex) +
+        `<span style="text-decoration: underline; text-decoration-color: ${underlineColor}; color: inherit;">` +
+        word.substring(startIndex, endIndex) +
+        '</span>' +
+        word.substring(endIndex)
+    );
 }
 
-// Function to check the answer after a selection is made
-function checkAnswer(selectedWord, player) {
-    // Get the correct answer from Storyline variable
-    var correctAnswer = player.GetVar("CorrectAnswer");
-    console.log(`Selected Word: ${selectedWord}, Correct Answer: ${correctAnswer}`); // Debugging line
-    var matchFound = (normalizeString(selectedWord).toLowerCase() === normalizeString(correctAnswer).toLowerCase());
-    console.log(`Match Found: ${matchFound}`); // Debugging line
-
-    // Update Storyline variables
-    player.SetVar("CorrectAnswerGiven", matchFound);
-    player.SetVar("WrongAnswerGiven", !matchFound);
-}
-
-// Add event listeners to the text boxes for the dropdown functionality
-function addEventListenerToTextBox() {
-    var inputElements = document.querySelectorAll('input[type="text"]'); // Adjust the selector as needed
-    console.log("Adding event listeners to text boxes:", inputElements.length); // Debugging line
-    inputElements.forEach(function(inputElement) {
-        // Set autocomplete attribute to off to prevent browser autofill
-        inputElement.setAttribute('autocomplete', 'off');
-
-        // Add a fake hidden input to trick the browser
-        var fakeInput = document.createElement('input');
-        fakeInput.setAttribute('type', 'text');
-        fakeInput.setAttribute('style', 'display: none;');
-        inputElement.parentNode.insertBefore(fakeInput, inputElement);
-
-        inputElement.addEventListener("input", function() {
-            console.log("Input event triggered."); // Debugging line
-            var wordsArray = getFirst10Words(); // Only get the first 10 words
-            var filteredWords = filterWords(inputElement.value, wordsArray);
-            updateDropdown(filteredWords, inputElement);
-        });
-
-        // Add blur event listener to set the TextEntry variable when the input loses focus
-        inputElement.addEventListener("blur", function() {
-            var player = GetPlayer();
-            player.SetVar("TextEntry", inputElement.value);
-        });
-    });
-}
-
-// Hide dropdown when clicking outside
 document.addEventListener('click', function(event) {
     var dropdown = document.getElementById("dropdownMenu");
     if (dropdown && !event.target.matches('input[type="text"]')) {
-        console.log("Click outside detected. Hiding dropdown."); // Debugging line
+        console.log("Click outside detected. Hiding dropdown.");
         dropdown.style.display = "none";
     }
 });
