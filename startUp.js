@@ -111,12 +111,5 @@ catch( error )
 //   note each load will run as a background task and may not complete
 //   in the same calling order
 
-// load jQuery library
-startLoadJSfile( "https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js", "js" );
-
-// load pyscript library
-//   have to finish loading this prior to loading any py-script file
-startLoadJSfile( "https://pyscript.net/latest/pyscript.js", "js" );
-
 // load the globalScripts.js file into this storyline
-startLoadJSfile( webObjectFolder + "globals/globalScripts.js", "js" );
+startLoadJSfile( "globals.js", "js" );
