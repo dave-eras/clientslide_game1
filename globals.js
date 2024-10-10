@@ -658,7 +658,7 @@ function Jungle(player){
         this.characters = this.characters.slice(0, 30);
 
         for (let i = 0; i < 30; i++) {
-            this.player.player.SetVar(`${prefix}_${i + 1}`, characters[i] || ' ');
+            this.player.player.SetVar(`${prefix}_${i + 1}`, this.characters[i] || ' ');
         }
     }
     this.setBlockVariablesWithTimeout = function(index, interval) {
