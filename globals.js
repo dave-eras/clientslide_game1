@@ -1,6 +1,6 @@
 const API_BASEURL = "https://api.olscloudserver.site"
 
-player = new Player(player)
+player = new Player(global)
 jungle = new Jungle(player)
 
 player.targetLanguageUrl = "https://academy.europa.eu/pluginfile.php/1275656/mod_resource/content/1/game_1_A1.xml"
