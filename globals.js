@@ -589,7 +589,7 @@ function Jungle(player){
     this.guessed = []
     this.wrongGuesses = 0
 
-    this.GenerateQuestion =function(phrase) {
+    this.GenerateQuestion = function(phrase) {
         this.sentence = player.player.GetVar(phrase)
 
         this.answer = this.sentence.substring(
@@ -618,11 +618,7 @@ function Jungle(player){
         this.processAndStore("display", this.mask);
 
         this.player.player.SetVar("lettersToGuess", this.mask.replaceAll(' ', '').length);
-
-        let intervals = [0, 180, 340, 480, 600, 700, 790, 870, 940, 1000];
-        for (let i = 1; i <= 10; i++) {
-            this.setBlockVariablesWithTimeout(i, intervals[i - 1]);
-        }
+        this.setBlockVariable(this);
     }
     
     this.processAndStore = function(prefix, text) {
@@ -630,12 +626,14 @@ function Jungle(player){
         let lineLength = 0;
         let line, nextLine = 0
 
+        let container = []
+
         for (let word of words) {
             nextLine = lineLength + word.length / 10
 
             if (nextLine > line) {
                 while (lineLength % 10 !== 0) {
-                    this.characters.push(' ');
+                    container.push(' ');
                     lineLength++;
                 }
 
@@ -643,38 +641,48 @@ function Jungle(player){
             }
 
             for (let character of word) {
-                this.characters.push(character);
+                container.push(character);
                 lineLength++;
             }
 
-            this.characters.push(' ');
+            container.push(' ');
             lineLength++;
         }
 
-        while (this.characters.length < 30) {
-            this.characters.push(' ');
+        while (container.length < 30) {
+            container.push(' ');
         }
 
-        this.characters = this.characters.slice(0, 30);
+        switch(prefix) {
+            case "display":
+                this.display = container.slice(0, 30);
 
+                for (let i = 0; i < 30; i++) {
+                    console.log(`${prefix}_${i + 1} -> ${container[i]}`)
+                    this.player.player.SetVar(`${prefix}_${i + 1}`, container[i] || ' ');
+                }
+                break
+            case "character":
+                this.characters = container.slice(0, 30);
+
+                for (let i = 0; i < 30; i++) {
+                    console.log(`${prefix}_${i + 1} -> ${container[i]}`)
+                    this.player.player.SetVar(`${prefix}_${i + 1}`, container[i] || ' ');
+                }
+                break
+        }
+    }
+
+    this.setBlockVariable = function(clone){
         for (let i = 0; i < 30; i++) {
-            console.log(`${prefix}_${i + 1} -> ${this.characters[i]}`)
-            this.player.player.SetVar(`${prefix}_${i + 1}`, this.characters[i] || ' ');
-        }
-    }
-    this.setBlockVariablesWithTimeout = function(index, interval) {
-        setTimeout(this.setBlockVariable(index, this), interval);
-    }
-
-    this.setBlockVariable = function(index, clone){
-        let indices = [index, index + 10, index + 20];
-
-        for (let i = 0; i < indices.length; i++) {
             let blockVariable = `block_${i}`;
 
             if (clone.characters[i].trim() === '') {
+                console.log(`block_${i} -> false`)
                 clone.player.player.SetVar(blockVariable, false);
             } else {
+                console.log(`block_${i} -> true`)
+
                 clone.player.player.SetVar(blockVariable, true);
             }
         }
