@@ -3,9 +3,6 @@ const API_BASEURL = "https://api.olscloudserver.site"
 player = new Player(player)
 jungle = new Jungle(player)
 
-player.player.SetVar("Phrase_1","You choose your clothes and get *dressed at a* quarter to eight.")
-jungle.GenerateQuestion()
-
 player.targetLanguageUrl = "https://academy.europa.eu/pluginfile.php/1275656/mod_resource/content/1/game_1_A1.xml"
 player.helpLanguageUrl = "https://academy.europa.eu/pluginfile.php/1275653/mod_resource/content/1/game_1_help_language.xml"
 
