@@ -589,8 +589,8 @@ function Jungle(player){
     this.guessed = []
     this.wrongGuesses = 0
 
-    this.GenerateQuestion =function() {
-        this.sentence = player.player.GetVar("Phrase_1")
+    this.GenerateQuestion =function(phrase) {
+        this.sentence = player.player.GetVar(phrase)
 
         this.answer = this.sentence.substring(
             this.sentence.indexOf("*") + 1,
@@ -624,6 +624,7 @@ function Jungle(player){
             this.setBlockVariablesWithTimeout(i, intervals[i - 1]);
         }
     }
+    
     this.processAndStore = function(prefix, text) {
         let words = text.split(' ');
         let lineLength = 0;
