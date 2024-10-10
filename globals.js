@@ -677,8 +677,8 @@ function Jungle(player){
         }, interval);
     }
 
-    this.checkCharacterInAnswer = function(){
-        let entry = player.GetVar("TextEntry").toLowerCase();
+    this.checkCharacterInAnswer = function(textentry){
+        let entry = player.GetVar(textentry).toLowerCase();
         let position = player.GetVar("whichCharacter");
         let display = player.GetVar("display");
 
@@ -714,6 +714,7 @@ function Jungle(player){
             }
         }
     }
+
     this.normalize = function(char) {
         return char.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     }
