@@ -597,7 +597,7 @@ function Jungle(player){
             this.sentence.lastIndexOf("*")
         );
 
-        this.mask = "_".repeat(answer.length)
+        this.mask = "_".repeat(this.answer.length)
 
         let space = this.answer.lastIndexOf(" ")
         while (space !== -1) {
@@ -656,7 +656,6 @@ function Jungle(player){
         }
 
         this.characters = this.characters.slice(0, 30);
-        this.characters = characters
 
         for (let i = 0; i < 30; i++) {
             this.player.player.SetVar(`${prefix}_${i + 1}`, characters[i] || ' ');
