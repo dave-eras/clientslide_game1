@@ -658,22 +658,26 @@ function Jungle(player){
         this.characters = this.characters.slice(0, 30);
 
         for (let i = 0; i < 30; i++) {
+            console.log(`${prefix}_${i + 1} -> ${this.characters[i]}`)
             this.player.player.SetVar(`${prefix}_${i + 1}`, this.characters[i] || ' ');
         }
     }
     this.setBlockVariablesWithTimeout = function(index, interval) {
-        setTimeout(() => {
-            let indices = [index, index + 10, index + 20];
-            indices.forEach(i => {
-                let blockVariable = `block_${i}`;
+        setTimeout(this.setBlockVariable(index, this), interval);
+    }
 
-                if (this.characters[i].trim() === '') {
-                    this.player.player.SetVar(blockVariable, false);
-                } else {
-                    this.player.player.SetVar(blockVariable, true);
-                }
-            });
-        }, interval);
+    this.setBlockVariable = function(index, clone){
+        let indices = [index, index + 10, index + 20];
+
+        for (let i = 0; i < indices.length; i++) {
+            let blockVariable = `block_${i}`;
+
+            if (clone.characters[i].trim() === '') {
+                clone.player.player.SetVar(blockVariable, false);
+            } else {
+                clone.player.player.SetVar(blockVariable, true);
+            }
+        }
     }
 
     this.checkCharacterInAnswer = function(textentry){
