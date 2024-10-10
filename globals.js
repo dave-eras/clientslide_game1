@@ -675,13 +675,13 @@ function Jungle(player){
 
     this.setBlockVariable = function(clone){
         for (let i = 0; i < 30; i++) {
-            let blockVariable = `block_${i}`;
+            let blockVariable = `block_${i+1}`;
 
             if (clone.characters[i].trim() === '') {
-                console.log(`block_${i} -> false`)
+                console.log(`block_${i+1} -> false`)
                 clone.player.player.SetVar(blockVariable, false);
             } else {
-                console.log(`block_${i} -> true`)
+                console.log(`block_${i+1} -> true`)
 
                 clone.player.player.SetVar(blockVariable, true);
             }
