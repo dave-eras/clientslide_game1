@@ -590,7 +590,7 @@ function Jungle(player){
     this.wrongGuesses = 0
 
     this.GenerateQuestion = function(phrase) {
-        this.sentence = player.player.GetVar(phrase)
+        this.sentence = this.player.player.GetVar(phrase)
 
         this.answer = this.sentence.substring(
             this.sentence.indexOf("*") + 1,
@@ -607,10 +607,10 @@ function Jungle(player){
 
         this.masked = this.sentence.replace("*" + this.answer + "*", this.mask)
 
-        player.player.SetVar("sentence", this.sentence);
-        player.player.SetVar("sentence_with_gap", this.masked);
-        player.player.SetVar("answer", this.answer);
-        player.player.SetVar("display", this.mask);
+        this.player.player.SetVar("sentence", this.sentence);
+        this.player.player.SetVar("sentence_with_gap", this.masked);
+        this.player.player.SetVar("answer", this.answer);
+        this.player.player.SetVar("display", this.mask);
     }
 
     this.storeCharactersInStoryline = function(){
@@ -629,15 +629,17 @@ function Jungle(player){
         let container = []
 
         for (let word of words) {
-            nextLine = lineLength + word.length / 10
+            let division = Math.floor((lineLength + word.length) / 10)
+            let reminder = (lineLength + word.length) % 10
+            nextLine = ((lineLength + word.length) / 10 !== 0)
 
-            if (nextLine > line) {
-                while (lineLength % 10 !== 0) {
-                    container.push(' ');
-                    lineLength++;
+            if (division !== 0) {
+                if (reminder !== 0) {
+                    while (lineLength % 10 !== 0) {
+                        container.push(' ');
+                        lineLength++;
+                    }
                 }
-
-                line = nextLine
             }
 
             for (let character of word) {
@@ -689,9 +691,9 @@ function Jungle(player){
     }
 
     this.checkCharacterInAnswer = function(textentry){
-        let entry = player.GetVar(textentry).toLowerCase();
-        let position = player.GetVar("whichCharacter");
-        let display = player.GetVar("display");
+        let entry = this.player.player.GetVar(textentry).toLowerCase();
+        let position = this.player.player.GetVar("whichCharacter");
+        let display = this.player.player.GetVar("display");
 
         this.guessed.push(entry)
 
@@ -703,24 +705,24 @@ function Jungle(player){
         const normalizedEntry = this.normalize(entry)
 
         if (this.characters[position - 1].toLowerCase() === normalizedEntry) {
-            player.SetVar(`${position}`, "true");
+            this.player.player.SetVar(`${position}`, "true");
         } else {
-            player.SetVar(`${position}`, "false");
+            this.player.player.SetVar(`${position}`, "false");
 
             // Now check other position if they match the letter if yes set it to true
             let found = false
             for (const [char, position] in this.characters) {
                 if (char.toLowerCase() === normalizedEntry) {
-                    player.SetVar(`${position}`, "true");
+                    this.player.player.SetVar(`${position}`, "true");
                     found = true
                 }
             }
 
             if (!found) {
-                player.SetVar("numberOfWrongAttempts", ++this.wrongGuesses);
+                this.player.player.SetVar("numberOfWrongAttempts", ++this.wrongGuesses);
 
                 if (this.wrongGuesses >= 1 && this.wrongGuesses <= 7) {
-                    player.SetVar(`incorrectAttempt_${this.wrongGuesses}`, entry);
+                    this.player.player.SetVar(`incorrectAttempt_${this.wrongGuesses}`, entry);
                 }
             }
         }
@@ -983,7 +985,7 @@ function updateDropdown(filteredWords, inputElement) {
                 player.SetVar("TextEntry", selectedWord);
 
                 // Check the answer after a selection is made
-                checkAnswer(selectedWord, player);
+                jungle.checkAnswer(selectedWord, player);
 
                 // Set dropdown background and text color after selection
                 dropdown.style.backgroundColor = "#F4E3D7";

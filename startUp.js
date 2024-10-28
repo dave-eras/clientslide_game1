@@ -28,9 +28,7 @@ var loadedCount = 0;
 let numLibs = 3;   // sum of js and css files to load
 let webObjectURL = "5ZFieU8qwIt";
 
-var player = GetPlayer( );
-
-
+var global = GetPlayer( );
 
 /**** Global Functions ****/
 
@@ -98,9 +96,9 @@ let webObjectFolder = "./story_content/WebObjects/"+webObjectURL+"/";
 
 try
 {
-   player.SetVar( "webObjectId", webObjectURL );
-   var str = player.GetVar( "webObjectId" );
-   console.log( "set StoryLine variable webObjectId = " + str );
+    global.SetVar( "webObjectId", webObjectURL );
+    var str = global.GetVar( "webObjectId" );
+    console.log( "set StoryLine variable webObjectId = " + str );
 }
 catch( error )
 {
