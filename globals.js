@@ -3,6 +3,8 @@ const API_BASEURL = "https://api.olscloudserver.site"
 player = new Player(global)
 jungle = new Jungle(player)
 
+jungle.player.player.SetVar("Phrase_1", "*Every morning* I brush my teeth.")
+
 player.targetLanguageUrl = "https://academy.europa.eu/pluginfile.php/1275656/mod_resource/content/1/game_1_A1.xml"
 player.helpLanguageUrl = "https://academy.europa.eu/pluginfile.php/1275653/mod_resource/content/1/game_1_help_language.xml"
 
@@ -706,26 +708,24 @@ function Jungle(player){
 
         if (this.characters[position - 1].toLowerCase() === normalizedEntry) {
             this.player.player.SetVar(`${position}`, "true");
+
+            for (let i=0; i<this.characters.length;i++) {
+                console.log(`${this.characters[i]} == ${normalizedEntry}`)
+
+                if (this.characters[i] === normalizedEntry.toLowerCase()) {
+                    this.player.player.SetVar(`${position+1}`, "true");
+                }
+            }
         } else {
             this.player.player.SetVar(`${position}`, "false");
+            this.player.player.SetVar("numberOfWrongAttempts", ++this.wrongGuesses);
 
-            // Now check other position if they match the letter if yes set it to true
-            let found = false
-            for (const [char, position] in this.characters) {
-                if (char.toLowerCase() === normalizedEntry) {
-                    this.player.player.SetVar(`${position}`, "true");
-                    found = true
-                }
-            }
-
-            if (!found) {
-                this.player.player.SetVar("numberOfWrongAttempts", ++this.wrongGuesses);
-
-                if (this.wrongGuesses >= 1 && this.wrongGuesses <= 7) {
-                    this.player.player.SetVar(`incorrectAttempt_${this.wrongGuesses}`, entry);
-                }
+            if (this.wrongGuesses >= 1 && this.wrongGuesses <= 7) {
+                this.player.player.SetVar(`incorrectAttempt_${this.wrongGuesses}`, entry);
             }
         }
+
+        console.log(this.player.player)
     }
 
     this.normalize = function(char) {
