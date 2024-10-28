@@ -587,6 +587,8 @@ function Jungle(player){
     this.mask = ""
     this.characters = []
     this.guessed = []
+    this.toGuessNumber = 0
+    this.guessedNumber = 0
     this.wrongGuesses = 0
 
     this.GenerateQuestion = function(phrase) {
@@ -735,6 +737,7 @@ function Jungle(player){
             if (this.characters[i] === normalizedEntry.toLowerCase()) {
                 this.display[i] = this.characters[i]
                 this.player.player.SetVar(`display_${i+1}`, this.characters[i])
+                this.player.player.SetVar(`${i+1}`, "true");
             }
         }
     }
