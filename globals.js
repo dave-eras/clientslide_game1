@@ -711,7 +711,7 @@ function Jungle(player){
                 console.log(`${this.characters[i]} == ${normalizedEntry}`)
 
                 if (this.characters[i] === normalizedEntry.toLowerCase()) {
-                    this.player.player.SetVar(`${position+1}`, "true");
+                    this.player.player.SetVar(`${i+1}`, "true");
                 }
             }
         } else {
