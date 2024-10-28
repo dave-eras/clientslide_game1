@@ -684,7 +684,6 @@ function Jungle(player){
                 clone.player.player.SetVar(blockVariable, false);
             } else {
                 console.log(`block_${i+1} -> true`)
-
                 clone.player.player.SetVar(blockVariable, true);
             }
         }
@@ -704,26 +703,38 @@ function Jungle(player){
 
         const normalizedEntry = this.normalize(entry)
 
-        if (this.characters[position - 1].toLowerCase() === normalizedEntry) {
-            this.player.player.SetVar(`${position}`, "true");
+        if (this.display[position - 1] !== "_") {
+            if (this.characters[position - 1].toLowerCase() === normalizedEntry) {
+                this.player.player.SetVar(`${position}`, "true");
 
-            for (let i=0; i<this.characters.length;i++) {
-                console.log(`${this.characters[i]} == ${normalizedEntry}`)
+                for (let i=0; i<this.characters.length;i++) {
+                    console.log(`${this.characters[i]} == ${normalizedEntry}`)
 
-                if (this.characters[i] === normalizedEntry.toLowerCase()) {
-                    this.player.player.SetVar(`${i+1}`, "true");
+                    if (this.characters[i] === normalizedEntry.toLowerCase()) {
+                        this.player.player.SetVar(`${i+1}`, "true");
+                    }
+                }
+            } else {
+                this.player.player.SetVar(`${position}`, "false");
+                this.player.player.SetVar("numberOfWrongAttempts", ++this.wrongGuesses);
+
+                if (this.wrongGuesses >= 1 && this.wrongGuesses <= 7) {
+                    this.player.player.SetVar(`incorrectAttempt_${this.wrongGuesses}`, entry);
                 }
             }
-        } else {
-            this.player.player.SetVar(`${position}`, "false");
-            this.player.player.SetVar("numberOfWrongAttempts", ++this.wrongGuesses);
+        }
+    }
 
-            if (this.wrongGuesses >= 1 && this.wrongGuesses <= 7) {
-                this.player.player.SetVar(`incorrectAttempt_${this.wrongGuesses}`, entry);
+    this.revealLetters = function(textentry) {
+        let entry = this.player.player.GetVar(textentry).toLowerCase();
+        const normalizedEntry = this.normalize(entry)
+
+        for (let i=0; i<this.characters.length;i++) {
+            if (this.characters[i] === normalizedEntry.toLowerCase()) {
+                this.display[i] = this.characters[i]
+                this.player.player.SetVar(`display_${i+1}`, this.characters[i])
             }
         }
-
-        console.log(this.player.player)
     }
 
     this.normalize = function(char) {
