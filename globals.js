@@ -729,6 +729,8 @@ function Jungle(player){
         let entry = this.player.player.GetVar(textentry).toLowerCase();
         const normalizedEntry = this.normalize(entry)
 
+        console.log(`TextEntry value ${entry}`)
+
         for (let i=0; i<this.characters.length;i++) {
             if (this.characters[i] === normalizedEntry.toLowerCase()) {
                 this.display[i] = this.characters[i]
