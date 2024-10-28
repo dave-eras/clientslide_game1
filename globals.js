@@ -703,7 +703,7 @@ function Jungle(player){
 
         const normalizedEntry = this.normalize(entry)
 
-        if (this.display[position - 1] !== "_") {
+        if (this.display[position - 1] === "_") {
             if (this.characters[position - 1].toLowerCase() === normalizedEntry) {
                 this.player.player.SetVar(`${position}`, "true");
 
